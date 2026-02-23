@@ -1154,6 +1154,30 @@ with tab_sales_money:
         )
 
     st.markdown("<div class='fw-section-title'>Daily & Weekly Sales</div>", unsafe_allow_html=True)
+    chart_cols = st.columns([1.4, 1])
+    with chart_cols[0]:
+        chart_data_current = build_chart_data(filtered_df, "Current", "Current")
+        chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison")
+        chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
+        chart_data_comparison["x_axis"] = chart_data_comparison["date"].dt.strftime("%b %d")
+        chart_df = pd.concat([chart_data_current, chart_data_comparison], ignore_index=True)
+        if not chart_df.empty:
+            bar_chart = (
+                alt.Chart(chart_df)
+                .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                .encode(
+                    x=alt.X("x_axis:N", title=""),
+                    y=alt.Y("netsales:Q", title="Net Sales"),
+                    color=alt.Color("series:N", scale=alt.Scale(range=["#f0652a", "#545b78"]), title=""),
+                    tooltip=["series:N", "date:T", alt.Tooltip("netsales:Q", format="$,.0f")],
+                )
+            )
+            st.markdown(
+                f"<div class='sales-bar-container'><div class='sales-bar-title'>Daily Snapshot</div>"
+                f"<div class='sales-bar-value'>${range_sales_display:,.0f}<span class='sales-bar-delta'>{sales_card_delta(range_sales_display, comparison_sales)}</span></div>",
+                unsafe_allow_html=True,
+            )
+            st.altair_chart(bar_chart, use_container_width=True)
     sales_cols = st.columns(2)
 
     summary_df = cast(pd.DataFrame, studio_df.copy())
