@@ -1220,17 +1220,19 @@ with tab_sales_money:
         comparison_weekly_rows = comparison_weekly_totals.head(len(weekly_rows)).reset_index()
         for idx, row in enumerate(weekly_rows.to_dict("records")):
             week_start = cast(pd.Timestamp, pd.Timestamp(row["week_start"]))
+            week_end = week_start + pd.Timedelta(days=6)
             week_value = float(row["netsales"])
             comp_label = "—"
             comp_value: Optional[float] = None
             if idx < len(comparison_weekly_rows):
                 comp_row = comparison_weekly_rows.iloc[idx]
                 comp_week = cast(pd.Timestamp, pd.Timestamp(comp_row["week_start"]))
+                comp_week_end = comp_week + pd.Timedelta(days=6)
                 comp_value = float(comp_row["netsales"])
-                comp_label = comp_week.strftime("%b %d, %Y")
+                comp_label = f"{comp_week:%b %d} - {comp_week_end:%b %d, %Y}"
             weekly_html_parts.append(
                 render_sales_entry_card(
-                    week_start.strftime("%b %d, %Y"),
+                    f"{week_start:%b %d} - {week_end:%b %d, %Y}",
                     week_value,
                     comp_label,
                     comp_value,
