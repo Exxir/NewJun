@@ -1156,28 +1156,52 @@ with tab_sales_money:
     st.markdown("<div class='fw-section-title'>Daily & Weekly Sales</div>", unsafe_allow_html=True)
     chart_cols = st.columns([1.4, 1])
     with chart_cols[0]:
-        chart_data_current = build_chart_data(filtered_df, "Current", "Current")
-        chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison")
-        chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
-        chart_data_comparison["x_axis"] = chart_data_comparison["date"].dt.strftime("%b %d")
-        chart_df = pd.concat([chart_data_current, chart_data_comparison], ignore_index=True)
-        if not chart_df.empty:
+        chart_data_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
+        chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison").sort_values("date")
+        if chart_data_current.empty:
+            st.info("Not enough data to display the snapshot chart.")
+        else:
+            chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
+            chart_data_current["display_label"] = chart_data_current["date"].dt.strftime("%b %d, %Y")
+            chart_data_current["comparison_label"] = chart_data_current["display_label"]
+
+            comparison_trimmed = chart_data_comparison.head(len(chart_data_current)).copy()
+            comparison_trimmed["x_axis"] = chart_data_current["x_axis"].values[:len(comparison_trimmed)]
+            comparison_trimmed["display_label"] = chart_data_current["display_label"].values[:len(comparison_trimmed)]
+            comparison_trimmed["comparison_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
+
+            chart_df = pd.concat([chart_data_current, comparison_trimmed], ignore_index=True)
+
             bar_chart = (
                 alt.Chart(chart_df)
                 .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
                 .encode(
                     x=alt.X("x_axis:N", title=""),
                     y=alt.Y("netsales:Q", title="Net Sales"),
-                    color=alt.Color("series:N", scale=alt.Scale(range=["#f0652a", "#545b78"]), title=""),
-                    tooltip=["series:N", "date:T", alt.Tooltip("netsales:Q", format="$,.0f")],
+                    color=alt.Color(
+                        "series:N",
+                        scale=alt.Scale(range=["#f0652a", "#545b78"]),
+                        title="",
+                        legend=alt.Legend(orient="bottom", labelColor="#aeb3d1"),
+                    ),
+                    tooltip=[
+                        alt.Tooltip("series:N", title="Series"),
+                        alt.Tooltip("display_label:N", title="Current Date"),
+                        alt.Tooltip("netsales:Q", title="Net Sales", format="$,.0f"),
+                        alt.Tooltip("comparison_label:N", title="Comparison Date"),
+                    ],
                 )
             )
-            st.markdown(
-                f"<div class='sales-bar-container'><div class='sales-bar-title'>Daily Snapshot</div>"
-                f"<div class='sales-bar-value'>${range_sales_display:,.0f}<span class='sales-bar-delta'>{sales_card_delta(range_sales_display, comparison_sales)}</span></div>",
-                unsafe_allow_html=True,
+
+            header_html = (
+                "<div class='sales-bar-container'>"
+                "<div class='sales-bar-title'>Daily Snapshot</div>"
+                f"<div class='sales-bar-value'>${range_sales_display:,.0f}"
+                f"<span class='sales-bar-delta'>{sales_card_delta(range_sales_display, comparison_sales)}</span></div>"
             )
+            st.markdown(header_html, unsafe_allow_html=True)
             st.altair_chart(bar_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
     sales_cols = st.columns(2)
 
     summary_df = cast(pd.DataFrame, studio_df.copy())
