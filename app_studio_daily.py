@@ -1,6 +1,6 @@
 from calendar import monthrange
-from datetime import date, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import altair as alt
 import pandas as pd
@@ -397,16 +397,42 @@ if horizon == "Monthly Estimate":
 
 comparison_period_label = f"{comp_start_date:%b %d, %Y} – {comp_end_date:%b %d, %Y}"
 
-month_reference_ts = actual_end_ts
+
+def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> float:
+    window = df[(df["date"] >= start) & (df["date"] <= end)]
+    if window.empty:
+        return 0.0
+    total = window["netsales"].sum()
+    return float(total) if pd.notna(total) else 0.0
+
+
+def shift_years(ts: Union[pd.Timestamp, date, datetime], years: int = 1) -> pd.Timestamp:
+    base = pd.Timestamp(ts)
+    return cast(pd.Timestamp, base - pd.DateOffset(years=years))  # type: ignore[operator]
+
+month_reference_ts = cast(pd.Timestamp, actual_end_ts)
+
 month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
 month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= month_reference_ts)]
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
 month_sales_estimate = range_sales_display if horizon == "Monthly Estimate" else month_sales_to_date
-month_label_td = f"{month_start_ts.date():%b %d} – {month_reference_ts.date():%b %d}" if month_sales_to_date else "No data"
+month_label_td = (
+    f"{month_start_ts:%b %d} – {month_reference_ts:%b %d}"
+    if month_sales_to_date
+    else "No data"
+)
 if horizon == "Monthly Estimate":
     month_label_est = f"Est: {start_date:%b %d} – {end_date:%b %d}"
 else:
     month_label_est = month_label_td
+
+month_td_comp_start = shift_years(month_start_ts.to_pydatetime())
+month_td_comp_end = shift_years(month_reference_ts.to_pydatetime())
+month_est_comp_start = shift_years(month_start_ts.to_pydatetime())
+month_est_comp_end = shift_years(cast(pd.Timestamp, pd.Timestamp(end_date)))
+
+month_sales_to_date_comp = sum_sales_between(studio_df, month_td_comp_start, month_td_comp_end)
+month_sales_estimate_comp = sum_sales_between(studio_df, month_est_comp_start, month_est_comp_end)
 
 st.markdown(
     (
@@ -1064,17 +1090,26 @@ with tab_sales_money:
         .sales-dollar-card {background:#0b1124;border:1px solid #2a3154;border-radius:16px;padding:0.75rem 1rem;margin-bottom:0.75rem;}
         .sales-dollar-card-label {font-size:0.8rem;color:#aeb3d1;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.15rem;}
         .sales-dollar-card-value {font-size:1.6rem;font-weight:600;color:#f5c746;}
+        .sales-dollar-card-delta {font-size:0.85rem;font-weight:600;margin-top:0.2rem;}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    def render_sales_card(label: str, amount: float, subtitle: str) -> str:
+    def sales_card_delta(current: float, comparison: float) -> str:
+        if comparison in (None, 0.0):
+            return "<div class='sales-dollar-card-delta'>—</div>"
+        delta_pct = ((current - comparison) / comparison) * 100 if comparison else 0.0
+        color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
+        return f"<div class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}% vs LY</div>"
+
+    def render_sales_card(label: str, amount: float, subtitle: str, comparison: float) -> str:
         return (
             f"<div class='sales-dollar-card'>"
             f"<div class='sales-dollar-card-label'>{label}</div>"
             f"<div class='sales-dollar-card-value'>${amount:,.0f}</div>"
             f"<div style='font-size:0.75rem;color:#aeb3d1;margin-top:0.25rem;'>{subtitle}</div>"
+            f"{sales_card_delta(amount, comparison)}"
             "</div>"
         )
 
@@ -1086,7 +1121,10 @@ with tab_sales_money:
     summary_df["week_start"] = summary_df["date"].dt.to_period("W-SUN").dt.start_time
 
     with sales_cols[0]:
-        st.markdown(render_sales_card("Sales TD", month_sales_to_date, month_label_td), unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card("Sales TD", month_sales_to_date, month_label_td, month_sales_to_date_comp),
+            unsafe_allow_html=True,
+        )
         st.markdown("<div class='fw-section-title'>Daily Sales</div>", unsafe_allow_html=True)
         daily_totals = summary_df.groupby("date")["netsales"].sum().sort_index(ascending=False)
         daily_rows = daily_totals.head(6).reset_index()
@@ -1107,7 +1145,10 @@ with tab_sales_money:
         st.markdown("".join(daily_html_parts), unsafe_allow_html=True)
 
     with sales_cols[1]:
-        st.markdown(render_sales_card("Sales Est", month_sales_estimate, month_label_est), unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card("Sales Est", month_sales_estimate, month_label_est, month_sales_estimate_comp),
+            unsafe_allow_html=True,
+        )
         st.markdown("<div class='fw-section-title'>Weekly Sales</div>", unsafe_allow_html=True)
         weekly_totals = summary_df.groupby("week_start")["netsales"].sum().sort_index(ascending=False)
         weekly_rows = weekly_totals.head(6).reset_index()
