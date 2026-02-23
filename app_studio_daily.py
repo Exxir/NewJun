@@ -644,7 +644,7 @@ with tab_snap:
         )
 
     cards = [
-        ("Sales", range_sales_display, comparison_sales, "currency", "Sales"),
+        ("Sales", range_sales_display, comparison_sales, "currency", "Sales $"),
         ("Occ %", selected_occ, comparison_occ, "percent", "Occupancy"),
         ("Mat %", selected_mat, comparison_mat, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
