@@ -401,7 +401,7 @@ month_reference_ts = actual_end_ts
 month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
 month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= month_reference_ts)]
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
-month_sales_estimate = month_sales_to_date + (forecast_extra_total if horizon == "Monthly Estimate" else 0.0)
+month_sales_estimate = range_sales_display if horizon == "Monthly Estimate" else month_sales_to_date
 
 st.markdown(
     (
