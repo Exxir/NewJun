@@ -1,6 +1,6 @@
 from calendar import monthrange
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
+from datetime import date, timedelta
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 
 import altair as alt
 import pandas as pd
@@ -405,11 +405,6 @@ def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) 
     total = window["netsales"].sum()
     return float(total) if pd.notna(total) else 0.0
 
-
-def shift_years(ts: Union[pd.Timestamp, date, datetime], years: int = 1) -> pd.Timestamp:
-    base = pd.Timestamp(ts)
-    return cast(pd.Timestamp, base - pd.DateOffset(years=years))  # type: ignore[operator]
-
 month_reference_ts = cast(pd.Timestamp, actual_end_ts)
 
 month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
@@ -426,13 +421,11 @@ if horizon == "Monthly Estimate":
 else:
     month_label_est = month_label_td
 
-month_td_comp_start = shift_years(month_start_ts.to_pydatetime())
-month_td_comp_end = shift_years(month_reference_ts.to_pydatetime())
-month_est_comp_start = shift_years(month_start_ts.to_pydatetime())
-month_est_comp_end = shift_years(cast(pd.Timestamp, pd.Timestamp(end_date)))
-
-month_sales_to_date_comp = sum_sales_between(studio_df, month_td_comp_start, month_td_comp_end)
-month_sales_estimate_comp = sum_sales_between(studio_df, month_est_comp_start, month_est_comp_end)
+month_td_span = month_reference_ts - month_start_ts
+month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
+month_td_comp_end = cast(pd.Timestamp, min(comp_start_ts + month_td_span, comp_end_ts))
+month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end)
+month_sales_estimate_comp = sum_sales_between(comparison_df, cast(pd.Timestamp, comp_start_ts), cast(pd.Timestamp, comp_end_ts))
 
 st.markdown(
     (
