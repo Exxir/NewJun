@@ -1087,10 +1087,11 @@ with tab_sales_money:
     st.markdown(
         """
         <style>
-        .sales-dollar-card {background:#0b1124;border:1px solid #2a3154;border-radius:16px;padding:0.75rem 1rem;margin-bottom:0.75rem;}
+        .sales-dollar-card {background:#0b1124;border:1px solid #2a3154;border-radius:16px;padding:0.85rem 1.1rem;margin-bottom:0.85rem;}
         .sales-dollar-card-label {font-size:0.8rem;color:#aeb3d1;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.15rem;}
+        .sales-dollar-card-main {display:flex;justify-content:space-between;align-items:center;}
         .sales-dollar-card-value {font-size:1.6rem;font-weight:600;color:#f5c746;}
-        .sales-dollar-card-delta {font-size:0.85rem;font-weight:600;margin-top:0.2rem;}
+        .sales-dollar-card-delta {font-size:0.95rem;font-weight:600;}
         </style>
         """,
         unsafe_allow_html=True,
@@ -1098,18 +1099,17 @@ with tab_sales_money:
 
     def sales_card_delta(current: float, comparison: float) -> str:
         if comparison in (None, 0.0):
-            return "<div class='sales-dollar-card-delta'>—</div>"
+            return "<span class='sales-dollar-card-delta'>—</span>"
         delta_pct = ((current - comparison) / comparison) * 100 if comparison else 0.0
         color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
-        return f"<div class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}% vs LY</div>"
+        return f"<span class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}%</span>"
 
     def render_sales_card(label: str, amount: float, subtitle: str, comparison: float) -> str:
         return (
             f"<div class='sales-dollar-card'>"
             f"<div class='sales-dollar-card-label'>{label}</div>"
-            f"<div class='sales-dollar-card-value'>${amount:,.0f}</div>"
+            f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison)}</div>"
             f"<div style='font-size:0.75rem;color:#aeb3d1;margin-top:0.25rem;'>{subtitle}</div>"
-            f"{sales_card_delta(amount, comparison)}"
             "</div>"
         )
 
