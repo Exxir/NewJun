@@ -1090,6 +1090,30 @@ with tab_sales_money:
         .sales-entry-title {font-size:0.95rem;font-weight:600;color:#f5f5ff;}
         .sales-entry-value {font-size:1.2rem;font-weight:600;color:#f5c746;}
         .sales-entry-meta {font-size:0.75rem;color:#aeb3d1;margin-top:0.15rem;}
+        .sales-dollar-card[data-tooltip], .sales-entry-card[data-tooltip] {position:relative;}
+        .sales-dollar-card[data-tooltip]::before, .sales-entry-card[data-tooltip]::before {
+            content:attr(data-tooltip);
+            position:absolute;
+            top:-8px;
+            left:50%;
+            transform:translate(-50%, -100%);
+            background:#0f1324;
+            color:#f5c746;
+            border:1px solid #f5c746;
+            border-radius:8px;
+            padding:0.3rem 0.6rem;
+            font-size:0.75rem;
+            white-space:nowrap;
+            pointer-events:none;
+            opacity:0;
+            transition:opacity 0.12s ease, transform 0.12s ease;
+            box-shadow:0 6px 20px rgba(0,0,0,0.35);
+            z-index:20;
+        }
+        .sales-dollar-card[data-tooltip]:hover::before, .sales-entry-card[data-tooltip]:hover::before {
+            opacity:1;
+            transform:translate(-50%, calc(-100% - 6px));
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1103,8 +1127,11 @@ with tab_sales_money:
         return f"<span class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}%</span>"
 
     def render_sales_card(label: str, amount: float, current_label: str, comparison_value: Optional[float], comparison_label: str) -> str:
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0.0):
+            tooltip = f"{comparison_label}: ${comparison_value:,.0f}"
         return (
-            f"<div class='sales-dollar-card'>"
+            f"<div class='sales-dollar-card' data-tooltip='{tooltip}'>"
             f"<div class='sales-dollar-card-label'>{label}</div>"
             f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison_value)}</div>"
             f"<div class='sales-dollar-card-sub'>{current_label}</div>"
@@ -1115,8 +1142,11 @@ with tab_sales_money:
     def render_sales_entry_card(title: str, amount: float, comparison_label: str, comparison_value: Optional[float]) -> str:
         delta_html = sales_card_delta(amount, comparison_value)
         comparison_text = comparison_label if comparison_label else "—"
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0.0):
+            tooltip = f"{comparison_text}: ${comparison_value:,.0f}"
         return (
-            "<div class='sales-entry-card'>"
+            f"<div class='sales-entry-card' data-tooltip='{tooltip}'>"
             f"<div class='sales-entry-header'><span class='sales-entry-title'>{title}</span>{delta_html}</div>"
             f"<div class='sales-entry-value'>${amount:,.0f}</div>"
             f"<div class='sales-entry-meta'>Comparison: {comparison_text}</div>"
