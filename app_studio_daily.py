@@ -412,20 +412,19 @@ month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df[
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
 month_sales_estimate = range_sales_display if horizon == "Monthly Estimate" else month_sales_to_date
 month_label_td = (
-    f"{month_start_ts:%b %d} – {month_reference_ts:%b %d}"
+    f"Sales MTD: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
     if month_sales_to_date
-    else "No data"
+    else "Sales MTD: No data"
 )
-if horizon == "Monthly Estimate":
-    month_label_est = f"Est: {start_date:%b %d} – {end_date:%b %d}"
-else:
-    month_label_est = month_label_td
+month_label_est = f"Sales Est: {start_date:%b %d} – {end_date:%b %d}" if horizon == "Monthly Estimate" else f"Sales Est: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
 
 month_td_span = month_reference_ts - month_start_ts
 month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
 month_td_comp_end = cast(pd.Timestamp, min(comp_start_ts + month_td_span, comp_end_ts))
 month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end)
 month_sales_estimate_comp = sum_sales_between(comparison_df, cast(pd.Timestamp, comp_start_ts), cast(pd.Timestamp, comp_end_ts))
+month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
+month_label_est_comp = f"{comp_start_date:%b %d} – {comp_end_date:%b %d}"
 
 st.markdown(
     (
@@ -1085,6 +1084,7 @@ with tab_sales_money:
         .sales-dollar-card-main {display:flex;justify-content:space-between;align-items:center;}
         .sales-dollar-card-value {font-size:1.6rem;font-weight:600;color:#f5c746;}
         .sales-dollar-card-delta {font-size:0.95rem;font-weight:600;}
+        .sales-dollar-card-sub {font-size:0.75rem;color:#aeb3d1;margin-top:0.2rem;}
         </style>
         """,
         unsafe_allow_html=True,
@@ -1097,12 +1097,13 @@ with tab_sales_money:
         color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
         return f"<span class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}%</span>"
 
-    def render_sales_card(label: str, amount: float, subtitle: str, comparison: float) -> str:
+    def render_sales_card(label: str, amount: float, current_label: str, comparison_value: float, comparison_label: str) -> str:
         return (
             f"<div class='sales-dollar-card'>"
             f"<div class='sales-dollar-card-label'>{label}</div>"
-            f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison)}</div>"
-            f"<div style='font-size:0.75rem;color:#aeb3d1;margin-top:0.25rem;'>{subtitle}</div>"
+            f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison_value)}</div>"
+            f"<div class='sales-dollar-card-sub'>{current_label}</div>"
+            f"<div class='sales-dollar-card-sub'>Comparison: {comparison_label}</div>"
             "</div>"
         )
 
@@ -1115,7 +1116,13 @@ with tab_sales_money:
 
     with sales_cols[0]:
         st.markdown(
-            render_sales_card("Sales TD", month_sales_to_date, month_label_td, month_sales_to_date_comp),
+            render_sales_card(
+                "Sales TD",
+                month_sales_to_date,
+                month_label_td,
+                month_sales_to_date_comp,
+                month_label_td_comp,
+            ),
             unsafe_allow_html=True,
         )
         st.markdown("<div class='fw-section-title'>Daily Sales</div>", unsafe_allow_html=True)
@@ -1139,7 +1146,13 @@ with tab_sales_money:
 
     with sales_cols[1]:
         st.markdown(
-            render_sales_card("Sales Est", month_sales_estimate, month_label_est, month_sales_estimate_comp),
+            render_sales_card(
+                "Sales Est",
+                month_sales_estimate,
+                month_label_est,
+                month_sales_estimate_comp,
+                month_label_est_comp,
+            ),
             unsafe_allow_html=True,
         )
         st.markdown("<div class='fw-section-title'>Weekly Sales</div>", unsafe_allow_html=True)
