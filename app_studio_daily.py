@@ -395,6 +395,8 @@ if horizon == "Monthly Estimate":
         diff_pct = ((range_sales_display - comparison_sales) / comparison_sales) * 100
         comparison_delta_pct = f"{diff_pct:+.1f}%"
 
+comparison_period_label = f"{comp_start_date:%b %d, %Y} – {comp_end_date:%b %d, %Y}"
+
 st.markdown(
     (
         "<div style='margin-top:-0.05rem;margin-bottom:0;color:#aeb3d1;font-size:0.9rem;'>"
@@ -558,9 +560,12 @@ with tab_snap:
         """
         <style>
         .snap-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.8rem;margin-top:0.5rem;}
-        .snap-card {background:#10121a;border:1px solid #2c2f38;border-radius:12px;padding:0.7rem 0.9rem;}
-        .snap-card[data-tab-target] {cursor:pointer; position:relative;}
-        .snap-card[data-tab-target]::after {content:""; position:absolute; top:6px; right:6px; width:20px; height:20px; background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath fill=%22%23f5c746%22 fill-rule=%22evenodd%22 d=%22M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm4.28 10.28a.75.75 0 0 0 0-1.06l-3-3a.75.75 0 1 0-1.06 1.06l1.72 1.72H8.25a.75.75 0 0 0 0 1.5h5.69l-1.72 1.72a.75.75 0 1 0 1.06 1.06l3-3Z%22 clip-rule=%22evenodd%22/%3E%3C/svg%3E'); background-size:100%; background-repeat:no-repeat;}
+        .snap-card {background:#10121a;border:1px solid #2c2f38;border-radius:12px;padding:0.7rem 0.9rem;position:relative;}
+        .snap-card[data-tab-target] {cursor:pointer;}
+        .snap-card[data-tab-target]::after {content:""; position:absolute; top:6px; right:6px; width:20px; height:20px; background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath fill=%22%23f5c746%22 fill-rule=%22evenodd%22 d=%22M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm4.28 10.28a.75.75 0 0 0 0-1.06l-3-3a.75.75 0 1 0-1.06 1.06l1.72 1.72H8.25a.75.75 0 0 0 0 1.5h5.69l-1.72 1.72a.75.75 0 1 0 1.06 1.06l3-3Z%22 clip-rule=%22evenodd%22/%3E%3C/svg%3E'); background-size:100%; background-repeat:no-repeat; pointer-events:none;}
+        .snap-card[data-tooltip]::before {content:attr(data-tooltip); position:absolute; top:-10px; left:50%; transform:translate(-50%, 6px); opacity:0; pointer-events:none; transition:opacity 0.12s ease, transform 0.12s ease; background:#0f1324; color:#f5c746; padding:0.35rem 0.6rem; border-radius:8px; font-size:0.75rem; border:1px solid #f5c746; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,0.35);}
+        .snap-card[data-tooltip]:hover::before,
+        .snap-card[data-tooltip]:focus-visible::before {opacity:1; transform:translate(-50%, -6px);}
         .snap-label {font-size:0.9rem;color:#fdfdfd;font-weight:700;letter-spacing:0.05em;}
         .snap-main {display:flex;justify-content:space-between;align-items:center;margin-top:0.15rem;}
         .snap-value {font-size:1.4rem;font-weight:600;color:#f5c746;}
@@ -629,8 +634,9 @@ with tab_snap:
             color = "#19c37d" if delta >= 0 else "#ff4b4b"
             delta_str = f"<span class='snap-delta' style='color:{color};'>{delta*100:+.1f}%</span>"
         target_attr = f"data-tab-target='{target}'" if target else ""
+        tooltip_attr = f"data-tooltip='{comparison_period_label}: {comparison_str}'"
         return (
-            f"<div class='snap-card' {target_attr}>"
+            f"<div class='snap-card' {target_attr} {tooltip_attr}>"
             f"<div class='snap-label'>{label}</div>"
             f"<div class='snap-main'><span class='snap-value'>{current_str}</span>{delta_str}</div>"
             f"<div class='snap-sub'>LP {comparison_str}</div>"
@@ -672,103 +678,6 @@ with tab_snap:
         """,
         height=0,
     )
-
-with tab_snap:
-    st.markdown(
-        """
-        <style>
-        .snap-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.8rem;margin-top:0.5rem;}
-        .snap-card {background:#10121a;border:1px solid #2c2f38;border-radius:12px;padding:0.7rem 0.9rem;}
-        .snap-label {font-size:0.9rem;color:#fdfdfd;font-weight:700;letter-spacing:0.05em;}
-        .snap-main {display:flex;justify-content:space-between;align-items:center;margin-top:0.15rem;}
-        .snap-value {font-size:1.4rem;font-weight:600;color:#f5c746;}
-        .snap-delta {font-size:0.9rem;font-weight:600;}
-        .snap-sub {font-size:0.8rem;color:#a8aec6;margin-top:0.25rem;}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    def fmt_value(value: Optional[float], kind: str) -> str:
-        if value is None:
-            return "—"
-        if kind == "currency":
-            return f"${value:,.0f}"
-        if kind == "percent":
-            return f"{value * 100:.0f}%"
-        if kind == "number2":
-            return f"{value:,.2f}"
-        return f"{value:,.0f}"
-
-    def yoy_delta(current: Optional[float], comparison: Optional[float]) -> Optional[float]:
-        if current is None or comparison in (None, 0):
-            return None
-        return (current / comparison) - 1
-
-    def occ_ratio(df: pd.DataFrame) -> Optional[float]:
-        if df.empty or "total_visits" not in df.columns:
-            return None
-        required = {"capacity", "classes"}
-        if not required.issubset(df.columns):
-            return None
-        denom = (df["capacity"] * df["classes"]).replace({0: pd.NA}).sum()
-        if denom in (None, 0):
-            return None
-        numer = df["total_visits"].fillna(0).sum()
-        return numer / denom if denom else None
-
-    def ratio_from_columns(df: pd.DataFrame, numer: str, denom: str) -> Optional[float]:
-        num = safe_sum(df, numer)
-        den = safe_sum(df, denom)
-        if num is None or den in (None, 0):
-            return None
-        return num / den
-
-    selected_visits_total = safe_sum(filtered_df, "total_visits") or 0.0
-    comparison_visits_total = safe_sum(comparison_df, "total_visits") or 0.0
-    selected_occ = occ_ratio(filtered_df)
-    comparison_occ = occ_ratio(comparison_df)
-    selected_mat = ratio_from_columns(filtered_df, "mt_visits", "total_visits")
-    comparison_mat = ratio_from_columns(comparison_df, "mt_visits", "total_visits")
-    selected_cp = ratio_from_columns(filtered_df, "cp_visits", "total_visits")
-    comparison_cp = ratio_from_columns(comparison_df, "cp_visits", "total_visits")
-    selected_per_visit = (range_sales_display / selected_visits_total) if selected_visits_total else None
-    comparison_per_visit = (comparison_sales / comparison_visits_total) if comparison_visits_total else None
-    selected_ft = safe_sum(filtered_df, "first_time")
-    comparison_ft = safe_sum(comparison_df, "first_time")
-
-    def snap_card(label: str, current: Optional[float], comparison: Optional[float], kind: str) -> str:
-        current_str = fmt_value(current, kind)
-        comparison_str = fmt_value(comparison, kind)
-        delta = yoy_delta(current, comparison)
-        if delta is None:
-            delta_str = "<span class='snap-delta'>—</span>"
-        else:
-            color = "#19c37d" if delta >= 0 else "#ff4b4b"
-            delta_str = f"<span class='snap-delta' style='color:{color};'>{delta*100:+.1f}%</span>"
-        return (
-            f"<div class='snap-card'>"
-            f"<div class='snap-label'>{label}</div>"
-            f"<div class='snap-main'><span class='snap-value'>{current_str}</span>{delta_str}</div>"
-            f"<div class='snap-sub'>LP {comparison_str}</div>"
-            f"</div>"
-        )
-
-    left_cards = [
-        ("Sales", range_sales_display, comparison_sales, "currency"),
-        ("Occ %", selected_occ, comparison_occ, "percent"),
-        ("Mat %", selected_mat, comparison_mat, "percent"),
-        ("$ / Visit", selected_per_visit, comparison_per_visit, "number2"),
-        ("FT Visit", selected_ft, comparison_ft, "number"),
-    ]
-
-    right_cards = [
-        ("Visits", selected_visits_total, comparison_visits_total, "number"),
-        ("CP %", selected_cp, comparison_cp, "percent"),
-    ]
-
-    snap_html = "<div class='snap-grid'>" + "".join(snap_card(*card) for card in left_cards + right_cards) + "</div>"
-    st.markdown(snap_html, unsafe_allow_html=True)
 
 with tab_forecast:
     if history_series.empty:
