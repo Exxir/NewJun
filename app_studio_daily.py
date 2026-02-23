@@ -228,7 +228,8 @@ def load_data():
             "net_sales",
             "total_visits",
             "capacity",
-            "classes"
+            "classes",
+            "first_time"
         FROM public.studio_daily_metrics
         WHERE "net_sales" IS NOT NULL
     """)
@@ -237,7 +238,7 @@ def load_data():
     df["date"] = pd.to_datetime(df["date"])
     df = df.rename(columns={"net_sales": "netsales"})
     df["weekday"] = df["date"].dt.strftime("%A")
-    for column in ("total_visits", "capacity", "classes"):
+    for column in ("total_visits", "capacity", "classes", "first_time"):
         df[column] = pd.to_numeric(df[column], errors="coerce")
     return df
 
