@@ -397,6 +397,12 @@ if horizon == "Monthly Estimate":
 
 comparison_period_label = f"{comp_start_date:%b %d, %Y} – {comp_end_date:%b %d, %Y}"
 
+month_reference_ts = actual_end_ts
+month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
+month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= month_reference_ts)]
+month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
+month_sales_estimate = month_sales_to_date + (forecast_extra_total if horizon == "Monthly Estimate" else 0.0)
+
 st.markdown(
     (
         "<div style='margin-top:-0.05rem;margin-bottom:0;color:#aeb3d1;font-size:0.9rem;'>"
@@ -1047,6 +1053,25 @@ with tab_fw_dashboard:
     render_summary_content()
 
 with tab_sales_money:
+    st.markdown(
+        """
+        <style>
+        .sales-dollar-card {background:#0b1124;border:1px solid #2a3154;border-radius:16px;padding:0.75rem 1rem;margin-bottom:0.75rem;}
+        .sales-dollar-card-label {font-size:0.8rem;color:#aeb3d1;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.15rem;}
+        .sales-dollar-card-value {font-size:1.6rem;font-weight:600;color:#f5c746;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    def render_sales_card(label: str, amount: float) -> str:
+        return (
+            f"<div class='sales-dollar-card'>"
+            f"<div class='sales-dollar-card-label'>{label}</div>"
+            f"<div class='sales-dollar-card-value'>${amount:,.0f}</div>"
+            "</div>"
+        )
+
     st.markdown("<div class='fw-section-title'>Daily & Weekly Sales</div>", unsafe_allow_html=True)
     sales_cols = st.columns(2)
 
@@ -1055,6 +1080,7 @@ with tab_sales_money:
     summary_df["week_start"] = summary_df["date"].dt.to_period("W-SUN").dt.start_time
 
     with sales_cols[0]:
+        st.markdown(render_sales_card("Sales TD", month_sales_to_date), unsafe_allow_html=True)
         st.markdown("<div class='fw-section-title'>Daily Sales</div>", unsafe_allow_html=True)
         daily_totals = summary_df.groupby("date")["netsales"].sum().sort_index(ascending=False)
         daily_rows = daily_totals.head(6).reset_index()
@@ -1075,6 +1101,7 @@ with tab_sales_money:
         st.markdown("".join(daily_html_parts), unsafe_allow_html=True)
 
     with sales_cols[1]:
+        st.markdown(render_sales_card("Sales Est", month_sales_estimate), unsafe_allow_html=True)
         st.markdown("<div class='fw-section-title'>Weekly Sales</div>", unsafe_allow_html=True)
         weekly_totals = summary_df.groupby("week_start")["netsales"].sum().sort_index(ascending=False)
         weekly_rows = weekly_totals.head(6).reset_index()
