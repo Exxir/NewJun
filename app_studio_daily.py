@@ -1085,25 +1085,41 @@ with tab_sales_money:
         .sales-dollar-card-value {font-size:1.6rem;font-weight:600;color:#f5c746;}
         .sales-dollar-card-delta {font-size:0.95rem;font-weight:600;}
         .sales-dollar-card-sub {font-size:0.75rem;color:#aeb3d1;margin-top:0.2rem;}
+        .sales-entry-card {background:#10121a;border:1px solid #252d47;border-radius:14px;padding:0.7rem 0.9rem;margin-bottom:0.6rem;}
+        .sales-entry-header {display:flex;justify-content:space-between;align-items:center;}
+        .sales-entry-title {font-size:0.95rem;font-weight:600;color:#f5f5ff;}
+        .sales-entry-value {font-size:1.2rem;font-weight:600;color:#f5c746;}
+        .sales-entry-meta {font-size:0.75rem;color:#aeb3d1;margin-top:0.15rem;}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    def sales_card_delta(current: float, comparison: float) -> str:
+    def sales_card_delta(current: float, comparison: Optional[float]) -> str:
         if comparison in (None, 0.0):
             return "<span class='sales-dollar-card-delta'>—</span>"
         delta_pct = ((current - comparison) / comparison) * 100 if comparison else 0.0
         color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
         return f"<span class='sales-dollar-card-delta' style='color:{color};'>{delta_pct:+.1f}%</span>"
 
-    def render_sales_card(label: str, amount: float, current_label: str, comparison_value: float, comparison_label: str) -> str:
+    def render_sales_card(label: str, amount: float, current_label: str, comparison_value: Optional[float], comparison_label: str) -> str:
         return (
             f"<div class='sales-dollar-card'>"
             f"<div class='sales-dollar-card-label'>{label}</div>"
             f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison_value)}</div>"
             f"<div class='sales-dollar-card-sub'>{current_label}</div>"
             f"<div class='sales-dollar-card-sub'>Comparison: {comparison_label}</div>"
+            "</div>"
+        )
+
+    def render_sales_entry_card(title: str, amount: float, comparison_label: str, comparison_value: Optional[float]) -> str:
+        delta_html = sales_card_delta(amount, comparison_value)
+        comparison_text = comparison_label if comparison_label else "—"
+        return (
+            "<div class='sales-entry-card'>"
+            f"<div class='sales-entry-header'><span class='sales-entry-title'>{title}</span>{delta_html}</div>"
+            f"<div class='sales-entry-value'>${amount:,.0f}</div>"
+            f"<div class='sales-entry-meta'>Comparison: {comparison_text}</div>"
             "</div>"
         )
 
@@ -1135,11 +1151,11 @@ with tab_sales_money:
             prev_day = cast(pd.Timestamp, day - pd.DateOffset(years=1))
             prev_day_value = daily_totals.get(prev_day)
             daily_html_parts.append(
-                render_fw_row(
-                    day.strftime("%m/%d/%y"),
-                    format_currency(day_value),
-                    prev_day.strftime("%m/%d/%y"),
-                    ratio_badge(yoy_ratio(day_value, prev_day_value)),
+                render_sales_entry_card(
+                    day.strftime("%b %d, %Y"),
+                    day_value,
+                    prev_day.strftime("%b %d, %Y") if prev_day_value is not None else "—",
+                    float(prev_day_value) if prev_day_value is not None else None,
                 )
             )
         st.markdown("".join(daily_html_parts), unsafe_allow_html=True)
@@ -1165,11 +1181,11 @@ with tab_sales_money:
             prev_week = cast(pd.Timestamp, week_start - pd.Timedelta(weeks=52))
             prev_value = weekly_totals.get(prev_week)
             weekly_html_parts.append(
-                render_fw_row(
-                    week_start.strftime("%m/%d/%y"),
-                    format_currency(week_value),
-                    prev_week.strftime("%m/%d/%y"),
-                    ratio_badge(yoy_ratio(week_value, prev_value)),
+                render_sales_entry_card(
+                    week_start.strftime("%b %d, %Y"),
+                    week_value,
+                    prev_week.strftime("%b %d, %Y") if prev_value is not None else "—",
+                    float(prev_value) if prev_value is not None else None,
                 )
             )
         st.markdown("".join(weekly_html_parts), unsafe_allow_html=True)
