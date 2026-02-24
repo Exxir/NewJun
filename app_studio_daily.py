@@ -690,11 +690,11 @@ with tab_snap:
     cards = [
         ("Sales", range_sales_display, comparison_sales, "currency", "Sales $"),
         ("Occ %", selected_occ, comparison_occ, "percent", "Occupancy"),
-        ("Mat %", selected_mat, comparison_mat, "percent", None),
+        ("CP %", selected_cp, comparison_cp, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
         ("Visits", selected_visits_total, comparison_visits_total, "number", None),
-        ("CP %", selected_cp, comparison_cp, "percent", None),
+        ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
 
     snap_html = "<div class='snap-grid'>" + "".join(snap_card_html(*card) for card in cards) + "</div>"
