@@ -356,6 +356,32 @@ else:
     comparison_delta_pct = f"{diff_pct:+.1f}%"
     yoy_multiplier = range_sales / comparison_sales if comparison_sales else 1.0
 
+
+def project_sales_for_dates(date_sequence: Sequence[pd.Timestamp]) -> List[Tuple[float, Optional[pd.Timestamp]]]:
+    projections: List[Tuple[float, Optional[pd.Timestamp]]] = []
+    if len(history_series) == 0:
+        return [(0.0, None) for _ in date_sequence]
+    for date_item in date_sequence:
+        target_ts = cast(pd.Timestamp, pd.Timestamp(date_item))
+        weekday = int(target_ts.dayofweek)
+        weekday_history = weekday_index_map.get(weekday)
+        history_pool = weekday_history if (weekday_history is not None and len(weekday_history) > 0) else history_index
+        if history_pool is None or len(history_pool) == 0:
+            projections.append((0.0, None))
+            continue
+        history_pool = cast(pd.DatetimeIndex, history_pool)
+        candidate = target_ts - pd.DateOffset(years=1)
+        if candidate <= history_pool[0]:
+            source_timestamp = cast(pd.Timestamp, history_pool[0])
+        elif candidate >= history_pool[-1]:
+            source_timestamp = cast(pd.Timestamp, history_pool[-1])
+        else:
+            source_timestamp = closest_timestamp(history_pool, candidate)
+        base_value = float(history_series.loc[source_timestamp])
+        projected = base_value * yoy_multiplier
+        projections.append((projected, source_timestamp))
+    return projections
+
 forecast_extra_total = 0.0
 estimated_rows: List[Dict[str, Any]] = []
 range_sales_display = range_sales
@@ -374,22 +400,8 @@ if horizon == "Estimate":
 
     remaining_dates = pd.date_range(start=actual_end_ts + timedelta(days=1), end=month_end_ts)
     if not remaining_dates.empty:
-        forecast_rows = []
-        for ts in remaining_dates:
-            target_ts = cast(pd.Timestamp, pd.Timestamp(ts))
-            candidate = cast(pd.Timestamp, target_ts - pd.DateOffset(years=1))
-            weekday = int(target_ts.dayofweek)
-            weekday_history = weekday_index_map.get(weekday)
-
-            if weekday_history is not None and len(weekday_history) > 0:
-                source_timestamp = closest_timestamp(weekday_history, candidate)
-            else:
-                source_timestamp = closest_timestamp(history_index, candidate)
-
-            base_value = float(history_series.loc[source_timestamp])
-            projected = base_value * yoy_multiplier
-            forecast_rows.append(projected)
-
+        projected_values = project_sales_for_dates(list(remaining_dates))
+        forecast_rows = [value for value, _ in projected_values]
         forecast_extra_total = float(sum(forecast_rows))
         estimated_rows = [
             {
@@ -751,29 +763,18 @@ with tab_forecast:
             forecast_end = clamp_date(normalized_forecast_range[1], future_min, future_max)
 
             forecast_dates = pd.date_range(start=forecast_start, end=forecast_end, freq="D")
+            projected_points = project_sales_for_dates(list(forecast_dates))
             forecast_rows = []
 
-            for ts in forecast_dates:
+            for ts, (projected, source_timestamp) in zip(forecast_dates, projected_points):
                 target_ts = cast(pd.Timestamp, pd.Timestamp(ts))
-                candidate = target_ts - pd.DateOffset(years=1)
-                target_weekday = int(target_ts.dayofweek)
-                weekday_history = weekday_index_map.get(target_weekday)
-
-                if weekday_history is not None and len(weekday_history) > 0:
-                    source_timestamp = closest_timestamp(weekday_history, candidate)
-                else:
-                    source_timestamp = closest_timestamp(history_index, candidate)
-
-                base_value = float(history_series.loc[source_timestamp])
-                projected = base_value * yoy_multiplier
-
                 forecast_rows.append(
                     {
                         "date": target_ts,
                         "weekday": target_ts.strftime("%a"),
                         "netsales": projected,
                         "studio": selection_label,
-                        "source_date": source_timestamp.date()
+                        "source_date": source_timestamp.date() if source_timestamp is not None else None,
                     }
                 )
 
