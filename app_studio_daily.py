@@ -1225,7 +1225,7 @@ with tab_sales_money:
     monthly_cols = st.columns([1, 1])
 
     with monthly_cols[0]:
-        st.markdown("<div class='fw-section-title'>Sales TD</div>", unsafe_allow_html=True)
+        st.markdown("<div class='fw-section-title'>Monthly Sales To Date</div>", unsafe_allow_html=True)
         st.markdown(
             render_sales_card(
                 "Sales TD",
@@ -1237,7 +1237,7 @@ with tab_sales_money:
             unsafe_allow_html=True,
         )
     with monthly_cols[1]:
-        st.markdown("<div class='fw-section-title'>Sales Est</div>", unsafe_allow_html=True)
+        st.markdown("<div class='fw-section-title'>Monthly Sales Estimate</div>", unsafe_allow_html=True)
         st.markdown(
             render_sales_card(
                 "Sales Est",
