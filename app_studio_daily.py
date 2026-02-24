@@ -286,9 +286,10 @@ if len(history_index) > 0:
         if mask.any():
             weekday_index_map[weekday] = history_weekday_series.index[mask]
 
+
 horizon = st.radio(
     "Select horizon",
-    ["Daily", "Weekly", "Monthly", "Estimate", "Custom"],
+    ["Daily", "Weekly", "Monthly", "Custom"],
     horizontal=True,
     label_visibility="collapsed",
 )
@@ -326,7 +327,7 @@ comp_start_ts = pd.Timestamp(comp_start_date)
 comp_end_ts = pd.Timestamp(comp_end_date)
 
 actual_end_ts = cast(pd.Timestamp, end_ts)
-if horizon == "Estimate":
+if False:
     actual_end_ts = cast(pd.Timestamp, pd.Timestamp(max_date))
 
 filtered_selection = studio_df[
@@ -449,7 +450,7 @@ if not remaining_month_dates.empty:
 full_month_estimate_total = month_sales_to_date + monthly_projection_remaining_total
 
 month_sales_estimate = full_month_estimate_total
-month_sales_to_date_display = full_month_estimate_total if horizon == "Estimate" else month_sales_to_date
+month_sales_to_date_display = month_sales_to_date
 month_label_td = (
     f"Sales MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d}"
     if month_sales_to_date
