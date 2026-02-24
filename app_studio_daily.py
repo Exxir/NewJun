@@ -1176,6 +1176,13 @@ with tab_sales_money:
             opacity:1;
             transform:translate(-50%, calc(-100% - 6px));
         }
+        .legend-dual {margin-bottom:1rem;}
+        .legend-row {display:flex;justify-content:center;flex-wrap:wrap;gap:1.5rem;font-size:0.8rem;color:#aeb3d1;}
+        .legend-entry {display:flex;align-items:center;gap:0.35rem;}
+        .legend-swatch {display:inline-block;width:10px;height:10px;border-radius:2px;}
+        .legend-label {font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+        .legend-value {font-weight:600;color:#f5c746;}
+        .legend-delta {font-weight:600;margin-left:0.2rem;}
         </style>
         """,
         unsafe_allow_html=True,
@@ -1269,11 +1276,11 @@ with tab_sales_money:
             comparison_color = "#3f4a78"
             current_bar_color = "#cda643"
             header_html = (
-                "<div class='sales-bar-container'>"
-                "<div class='sales-bar-legend' style='justify-content:center;'>"
-                f"<span><span class='sales-bar-dot' style='background:#f5c746;width:10px;height:10px;'></span>Current: {current_range} <span style='color:#f5c746;'>${range_sales_display:,.0f}</span> {current_delta}</span>"
-                f"<span style='margin:0 0.75rem;'>{spacer}</span>"
-                f"<span><span class='sales-bar-dot' style='background:{comparison_color};width:10px;height:10px;'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
+                "<div class='sales-bar-container legend-dual'>"
+                "<div class='legend-row'>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:{comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{comparison_color};'>${comparison_sales:,.0f}</span><span class='legend-period'>{comparison_range}</span><span class='legend-delta'>{comparison_delta}</span></span>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:{current_bar_color};'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:{current_bar_color};'>${range_sales_display:,.0f}</span><span class='legend-period'>{current_range}</span><span class='legend-delta'>{current_delta}</span></span>"
+                "</div>"
                 "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
