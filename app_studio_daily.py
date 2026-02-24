@@ -1266,12 +1266,13 @@ with tab_sales_money:
             spacer = "&nbsp;" * 6
             current_delta = sales_card_delta(range_sales_display, comparison_sales)
             comparison_delta = sales_card_delta(comparison_sales, range_sales_display)
+            comparison_color = "#3f4a78"
             header_html = (
                 "<div class='sales-bar-container'>"
                 "<div class='sales-bar-legend'>"
                 f"<span><span class='sales-bar-dot' style='background:#f5c746;'></span>Current: {current_range} <span style='color:#f5c746;'>${range_sales_display:,.0f}</span> {current_delta}</span>"
                 f"<span style='margin-left:0.75rem;'>{spacer}</span>"
-                f"<span><span class='sales-bar-dot' style='background:#2a3154;'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
+                f"<span><span class='sales-bar-dot' style='background:{comparison_color};'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
                 "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
@@ -1285,7 +1286,7 @@ with tab_sales_money:
                     y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                     color=alt.Color(
                         "series:N",
-                        scale=alt.Scale(range=["#2a3154", "#f5c746"], domain=["Comparison", "Current"]),
+                        scale=alt.Scale(range=[comparison_color, "#f5c746"], domain=["Comparison", "Current"]),
                         title="",
                         legend=None,
                     ),
