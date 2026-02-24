@@ -1176,12 +1176,14 @@ with tab_sales_money:
             current_range = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
             comparison_range = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
             spacer = "&nbsp;" * 6
+            current_delta = sales_card_delta(range_sales_display, comparison_sales)
+            comparison_delta = sales_card_delta(comparison_sales, range_sales_display)
             header_html = (
                 "<div class='sales-bar-container'>"
                 "<div class='sales-bar-legend'>"
-                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: ${range_sales_display:,.0f} {current_range}</span>"
+                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: {current_range} ${range_sales_display:,.0f} {current_delta}</span>"
                 f"<span style='margin-left:0.75rem;'>{spacer}</span>"
-                f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: ${comparison_sales:,.0f} {comparison_range}</span>"
+                f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
                 "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
