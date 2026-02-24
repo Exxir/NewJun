@@ -1181,7 +1181,7 @@ with tab_sales_money:
             header_html = (
                 "<div class='sales-bar-container'>"
                 "<div class='sales-bar-legend'>"
-                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: {current_range} ${range_sales_display:,.0f} {current_delta}</span>"
+                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: {current_range} <span style='color:#f5c746;'>${range_sales_display:,.0f}</span> {current_delta}</span>"
                 f"<span style='margin-left:0.75rem;'>{spacer}</span>"
                 f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
                 "</div>"
