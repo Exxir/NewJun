@@ -1269,10 +1269,10 @@ with tab_sales_money:
             comparison_color = "#3f4a78"
             header_html = (
                 "<div class='sales-bar-container'>"
-                "<div class='sales-bar-legend'>"
-                f"<span><span class='sales-bar-dot' style='background:#f5c746;'></span>Current: {current_range} <span style='color:#f5c746;'>${range_sales_display:,.0f}</span> {current_delta}</span>"
-                f"<span style='margin-left:0.75rem;'>{spacer}</span>"
-                f"<span><span class='sales-bar-dot' style='background:{comparison_color};'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
+                "<div class='sales-bar-legend' style='justify-content:center;'>"
+                f"<span><span class='sales-bar-dot' style='background:#f5c746;width:10px;height:10px;'></span>Current: {current_range} <span style='color:#f5c746;'>${range_sales_display:,.0f}</span> {current_delta}</span>"
+                f"<span style='margin:0 0.75rem;'>{spacer}</span>"
+                f"<span><span class='sales-bar-dot' style='background:{comparison_color};width:10px;height:10px;'></span>Comparison: {comparison_range} ${comparison_sales:,.0f} {comparison_delta}</span>"
                 "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
