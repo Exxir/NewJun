@@ -1177,13 +1177,10 @@ with tab_sales_money:
             comparison_range = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
             header_html = (
                 "<div class='sales-bar-container'>"
-                "<div style='display:flex;justify-content:space-between;align-items:center;'>"
-                f"<div><div class='sales-bar-title'>Daily Snapshot</div>"
-                f"<div class='sales-bar-value'>${range_sales_display:,.0f}<span class='sales-bar-delta'>{sales_card_delta(range_sales_display, comparison_sales)}</span></div></div>"
                 "<div class='sales-bar-legend'>"
                 f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: {comparison_range}</span>"
                 f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: {current_range}</span>"
-                "</div></div>"
+                "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
 
