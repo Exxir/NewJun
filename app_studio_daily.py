@@ -1178,8 +1178,8 @@ with tab_sales_money:
             header_html = (
                 "<div class='sales-bar-container'>"
                 "<div class='sales-bar-legend'>"
-                f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: {comparison_range}</span>"
-                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: {current_range}</span>"
+                f"<span><span class='sales-bar-dot' style='background:#545b78;'></span>Current: ${range_sales_display:,.0f} {current_range}</span>"
+                f"<span><span class='sales-bar-dot' style='background:#f0652a;'></span>Comparison: ${comparison_sales:,.0f} {comparison_range}</span>"
                 "</div>"
             )
             st.markdown(header_html, unsafe_allow_html=True)
