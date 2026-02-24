@@ -455,11 +455,7 @@ month_label_td = (
     if month_sales_to_date
     else "Sales MTD: No data"
 )
-month_label_est = (
-    f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y}"
-    if horizon == "Estimate"
-    else f"Sales Est: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
-)
+month_label_est = f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y}"
 
 month_td_span = month_reference_ts - month_start_ts
 month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
@@ -468,6 +464,9 @@ month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start,
 month_sales_estimate_comp = sum_sales_between(comparison_df, cast(pd.Timestamp, comp_start_ts), cast(pd.Timestamp, comp_end_ts))
 month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
 month_label_est_comp = f"{comp_start_date:%b %d} – {comp_end_date:%b %d}"
+month_sales_estimate_delta_pct = None
+if month_sales_estimate_comp not in (None, 0):
+    month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
 
 st.markdown(
     (
@@ -1237,13 +1236,18 @@ with tab_sales_money:
         )
     with monthly_cols[1]:
         st.markdown("<div class='fw-section-title'>Monthly Sales Estimate</div>", unsafe_allow_html=True)
+        est_delta_label = (
+            f"{month_sales_estimate_delta_pct:+.1f}%"
+            if month_sales_estimate_delta_pct is not None
+            else "—"
+        )
         st.markdown(
             render_sales_card(
                 "",
                 month_sales_estimate,
-                month_label_est,
+                f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y} <span style='color:#19c37d;font-weight:600;margin-left:0.35rem;'>{est_delta_label}</span>",
                 month_sales_estimate_comp,
-                month_label_est_comp,
+                f"Prior Year: {month_label_est_comp}",
             ),
             unsafe_allow_html=True,
         )
@@ -1373,3 +1377,6 @@ with tab_sales_money:
                 )
             )
         st.markdown("".join(weekly_html_parts), unsafe_allow_html=True)
+month_sales_estimate_delta_pct = None
+if month_sales_estimate_comp not in (None, 0):
+    month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
