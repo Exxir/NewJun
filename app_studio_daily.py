@@ -388,9 +388,10 @@ range_sales_display = range_sales
 
 forecast_values: List[float] = []
 
+month_start_ts = cast(pd.Timestamp, pd.Timestamp(start_date))
+month_end_ts = cast(pd.Timestamp, pd.Timestamp(end_date))
+
 if horizon == "Estimate":
-    month_start_ts = pd.Timestamp(start_date)
-    month_end_ts = pd.Timestamp(end_date)
 
     actual_range = studio_df[
         (studio_df["date"] >= month_start_ts) &
@@ -783,6 +784,32 @@ with tab_forecast:
                 st.info("No forecast data for the selected range.")
             else:
                 st.dataframe(format_table(forecast_view))
+
+        # Monthly estimate summary
+        month_container = st.container()
+        with month_container:
+            monthly_current_total = range_sales_display if horizon == "Estimate" else month_sales_estimate
+            prev_year_period_start = cast(pd.Timestamp, month_start_ts - pd.DateOffset(years=1))
+            prev_year_period_end = cast(pd.Timestamp, month_end_ts - pd.DateOffset(years=1))
+            previous_year_total = sum_sales_between(studio_df, prev_year_period_start, prev_year_period_end)
+            delta_pct = None
+            if previous_year_total not in (None, 0):
+                delta_pct = ((monthly_current_total - previous_year_total) / previous_year_total) * 100
+            comparison_label = f"Prior Year: {prev_year_period_start:%b %d} – {prev_year_period_end:%b %d, %Y}"
+            delta_str = "—" if delta_pct is None else f"{delta_pct:+.1f}%"
+            st.markdown(
+                f"<div style='background:#0b1124;border:1px solid #2a3154;border-radius:16px;padding:0.8rem 1rem;margin-bottom:0.75rem;'>"
+                f"<div style='font-size:0.85rem;color:#aeb3d1;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.15rem;'>Monthly Estimate</div>"
+                f"<div style='display:flex;justify-content:space-between;align-items:center;'>"
+                f"<span style='font-size:1.6rem;font-weight:600;color:#f5c746;'>${monthly_current_total:,.0f}</span>"
+                f"<span style='font-size:0.95rem;font-weight:600;color:#19c37d;'>{delta_str}</span>"
+                f"</div>"
+                f"<div style='font-size:0.75rem;color:#aeb3d1;margin-top:0.25rem;'>"
+                f"Current: {month_start_ts:%b %d} – {month_end_ts:%b %d, %Y}</div>"
+                f"<div style='font-size:0.75rem;color:#aeb3d1;'>" + comparison_label + "</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
 
 def calculate_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
