@@ -1278,8 +1278,8 @@ with tab_sales_money:
             header_html = (
                 "<div class='sales-bar-container legend-dual'>"
                 "<div class='legend-row'>"
-                f"<span class='legend-entry'><span class='legend-swatch' style='background:{comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{comparison_color};'>${comparison_sales:,.0f}</span><span class='legend-period'>{comparison_range}</span><span class='legend-delta'>{comparison_delta}</span></span>"
                 f"<span class='legend-entry'><span class='legend-swatch' style='background:{current_bar_color};'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:{current_bar_color};'>${range_sales_display:,.0f}</span><span class='legend-period'>{current_range}</span><span class='legend-delta'>{current_delta}</span></span>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:{comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{comparison_color};'>${comparison_sales:,.0f}</span><span class='legend-period'>{comparison_range}</span><span class='legend-delta'>{comparison_delta}</span></span>"
                 "</div>"
                 "</div>"
             )
