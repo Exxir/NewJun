@@ -461,8 +461,8 @@ month_td_span = month_reference_ts - month_start_ts
 month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
 month_td_comp_end = cast(pd.Timestamp, min(comp_start_ts + month_td_span, comp_end_ts))
 month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end)
-comparison_month_start = cast(pd.Timestamp, month_start_ts - pd.DateOffset(years=1))
-comparison_month_end = cast(pd.Timestamp, full_month_end_ts - pd.DateOffset(years=1))
+comparison_month_start = cast(pd.Timestamp, pd.Timestamp(comp_start_date).replace(day=1))
+comparison_month_end = cast(pd.Timestamp, comparison_month_start + pd.DateOffset(days=month_last_day - 1))
 month_sales_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end)
 month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
 month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d}"
