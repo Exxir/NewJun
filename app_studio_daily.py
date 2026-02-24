@@ -1285,7 +1285,7 @@ with tab_sales_money:
                     y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                     color=alt.Color(
                         "series:N",
-                        scale=alt.Scale(range=["#f0652a", "#f5c746"]),
+                        scale=alt.Scale(range=["#f0652a", "#f5c746"], domain=["Comparison", "Current"]),
                         title="",
                         legend=None,
                     ),
