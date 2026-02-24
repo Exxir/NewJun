@@ -433,20 +433,25 @@ def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) 
 month_reference_ts = cast(pd.Timestamp, min(pd.Timestamp(actual_end_ts), pd.Timestamp(end_date)))
 
 month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
-month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= month_reference_ts)]
+month_last_day = monthrange(month_start_ts.year, month_start_ts.month)[1]
+full_month_end_ts = cast(pd.Timestamp, month_start_ts.replace(day=month_last_day))
+actual_month_end = cast(pd.Timestamp, min(month_reference_ts, full_month_end_ts))
+month_end_ts = full_month_end_ts
+
+month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= actual_month_end)]
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
 
 monthly_projection_remaining_total = 0.0
-remaining_month_dates = pd.date_range(start=month_reference_ts + timedelta(days=1), end=month_end_ts)
+remaining_month_dates = pd.date_range(start=actual_month_end + timedelta(days=1), end=full_month_end_ts)
 if not remaining_month_dates.empty:
     monthly_projection_remaining_total = sum(value for value, _ in project_sales_for_dates(list(remaining_month_dates)))
 
 full_month_estimate_total = month_sales_to_date + monthly_projection_remaining_total
 
-month_sales_estimate = full_month_estimate_total if horizon == "Estimate" else month_sales_to_date
+month_sales_estimate = full_month_estimate_total
 month_sales_to_date_display = full_month_estimate_total if horizon == "Estimate" else month_sales_to_date
 month_label_td = (
-    f"Sales MTD: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
+    f"Sales MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d}"
     if month_sales_to_date
     else "Sales MTD: No data"
 )
@@ -798,7 +803,7 @@ with tab_forecast:
         with month_container:
             monthly_current_total = full_month_estimate_total
             prev_year_period_start = cast(pd.Timestamp, month_start_ts - pd.DateOffset(years=1))
-            prev_year_period_end = cast(pd.Timestamp, month_end_ts - pd.DateOffset(years=1))
+            prev_year_period_end = cast(pd.Timestamp, full_month_end_ts - pd.DateOffset(years=1))
             previous_year_total = sum_sales_between(studio_df, prev_year_period_start, prev_year_period_end)
             delta_pct = None
             if previous_year_total not in (None, 0):
