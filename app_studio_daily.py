@@ -423,7 +423,7 @@ month_label_est_comp = f"{comp_start_date:%b %d} – {comp_end_date:%b %d}"
 st.markdown(
     (
         "<div style='margin-top:-0.05rem;margin-bottom:0;color:#aeb3d1;font-size:0.9rem;'>"
-        f"Current: {start_date:%b %d, %Y} – {end_date:%b %d, %Y} | "
+        f"<span style='color:#f5c746;'>Current: {start_date:%b %d, %Y} – {end_date:%b %d, %Y}</span> | "
         f"Comparison: {comp_start_date:%b %d, %Y} – {comp_end_date:%b %d, %Y}"
         "</div>"
     ),
