@@ -246,55 +246,50 @@ def load_data():
 df = load_data()
 
 # --- Studio Selector ---
-selector_card = st.container()
-with selector_card:
-    st.markdown('<div class="selector-card">', unsafe_allow_html=True)
-    studios = sorted(df["studio"].unique())
-    default_selection = studios[:1]
-    st.markdown('<div class="selector-title">Studios</div>', unsafe_allow_html=True)
-    selected_studios = st.multiselect(
-        "Studios",
-        studios,
-        default=default_selection,
-        label_visibility="collapsed",
-    )
+studios = sorted(df["studio"].unique())
+default_selection = studios[:1]
+st.markdown('<div class="selector-title">Studios</div>', unsafe_allow_html=True)
+selected_studios = st.multiselect(
+    "Studios",
+    studios,
+    default=default_selection,
+    label_visibility="collapsed",
+)
 
-    if not selected_studios:
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.info("Select at least one studio to continue.")
-        st.stop()
+if not selected_studios:
+    st.info("Select at least one studio to continue.")
+    st.stop()
 
-    selection_label = ", ".join(selected_studios)
+selection_label = ", ".join(selected_studios)
 
-    studio_df = df[df["studio"].isin(selected_studios)].copy()
+studio_df = df[df["studio"].isin(selected_studios)].copy()
 
-    if studio_df.empty:
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.warning("No data available for the selected studios.")
-        st.stop()
+if studio_df.empty:
+    st.warning("No data available for the selected studios.")
+    st.stop()
 
-    studio_df = studio_df.sort_values("date")  # type: ignore[arg-type]
+studio_df = studio_df.sort_values("date")  # type: ignore[arg-type]
 
-    min_date = studio_df["date"].min().date()
-    max_date = studio_df["date"].max().date()
-    oldest_month_start = min_date.replace(day=1)
+min_date = studio_df["date"].min().date()
+max_date = studio_df["date"].max().date()
+oldest_month_start = min_date.replace(day=1)
 
-    history_series = studio_df.groupby("date")["netsales"].sum().sort_index()
-    history_index: pd.DatetimeIndex = pd.DatetimeIndex(history_series.index)
-    weekday_index_map = {}
-    if len(history_index) > 0:
-        history_weekday_series = pd.Series(history_index, index=history_index).dt.weekday
-        for weekday in range(7):
-            mask = history_weekday_series == weekday
-            if mask.any():
-                weekday_index_map[weekday] = history_weekday_series.index[mask]
+history_series = studio_df.groupby("date")["netsales"].sum().sort_index()
+history_index: pd.DatetimeIndex = pd.DatetimeIndex(history_series.index)
+weekday_index_map = {}
+if len(history_index) > 0:
+    history_weekday_series = pd.Series(history_index, index=history_index).dt.weekday
+    for weekday in range(7):
+        mask = history_weekday_series == weekday
+        if mask.any():
+            weekday_index_map[weekday] = history_weekday_series.index[mask]
 
-    horizon = st.radio(
-        "Select horizon",
-        ["Daily", "Weekly", "Monthly", "Monthly Estimate"],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+horizon = st.radio(
+    "Select horizon",
+    ["Daily", "Weekly", "Monthly", "Monthly Estimate"],
+    horizontal=True,
+    label_visibility="collapsed",
+)
 
 start_date, end_date = compute_current_dates(horizon, min_date, max_date)
 comp_start_date, comp_end_date = compute_comparison_dates(
