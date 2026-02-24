@@ -164,11 +164,11 @@ def compute_comparison_dates(
 st.set_page_config(layout="wide")
 header_html = (
     "<style>"
-    ".primary-header {font-size: 2rem; font-weight: 700; margin: 0;}"
+    ".primary-header {font-size: 2.3rem; font-weight: 700; margin: 0;}"
     ".header-divider {border-bottom: 1px solid #1e2438; margin: 0.1rem 0 0.2rem;}"
     "div.block-container {padding-top: 0.5rem !important;}"
     "</style>"
-    "<div class=\"primary-header\">Jungle Studio Dashboard</div>"
+    "<div class=\"primary-header\">Jungle Studios Dashboard</div>"
     "<div class=\"header-divider\"></div>"
 )
 st.markdown(header_html, unsafe_allow_html=True)
