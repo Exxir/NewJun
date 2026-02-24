@@ -671,7 +671,11 @@ with tab_snap:
         if delta is None:
             delta_str = "<span class='snap-delta'>—</span>"
         else:
-            color = "#19c37d" if delta >= 0 else "#ff4b4b"
+            prefer_green = (label == "CP %")
+            if prefer_green:
+                color = "#19c37d"
+            else:
+                color = "#19c37d" if delta >= 0 else "#ff4b4b"
             delta_str = f"<span class='snap-delta' style='color:{color};'>{delta*100:+.1f}%</span>"
         target_attr = f"data-tab-target='{target}'" if target else ""
         tooltip_attr = f"data-tooltip='{comparison_period_label}: {comparison_str}'"
