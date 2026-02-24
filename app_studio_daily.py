@@ -114,7 +114,7 @@ def compute_current_dates(horizon: str, min_date: date, max_date: date) -> Tuple
     elif horizon == "Weekly":
         end = max_date
         start = max_date - timedelta(days=6)
-    elif horizon == "Monthly Estimate":
+    elif horizon in ("Monthly Estimate", "Estimate"):
         start = max_date.replace(day=1)
         end_day = monthrange(max_date.year, max_date.month)[1]
         end = max_date.replace(day=end_day)
@@ -455,7 +455,11 @@ month_label_td = (
     if month_sales_to_date
     else "Sales MTD: No data"
 )
-month_label_est = f"Sales Est: {start_date:%b %d} – {end_date:%b %d}" if horizon == "Monthly Estimate" else f"Sales Est: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
+month_label_est = (
+    f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y}"
+    if horizon == "Estimate"
+    else f"Sales Est: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
+)
 
 month_td_span = month_reference_ts - month_start_ts
 month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
