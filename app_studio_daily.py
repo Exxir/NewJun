@@ -671,7 +671,7 @@ with tab_snap:
         if delta is None:
             delta_str = "<span class='snap-delta'>—</span>"
         else:
-            prefer_green = (label == "CP %")
+            prefer_green = (label == "Classpass %")
             if prefer_green:
                 color = "#19c37d"
             else:
@@ -689,8 +689,8 @@ with tab_snap:
 
     cards = [
         ("Sales", range_sales_display, comparison_sales, "currency", "Sales $"),
-        ("Occ %", selected_occ, comparison_occ, "percent", "Occupancy"),
-        ("CP %", selected_cp, comparison_cp, "percent", None),
+        ("Occupancy", selected_occ, comparison_occ, "percent", "Occupancy"),
+        ("Classpass %", selected_cp, comparison_cp, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
         ("Visits", selected_visits_total, comparison_visits_total, "number", None),
