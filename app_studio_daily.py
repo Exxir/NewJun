@@ -1154,7 +1154,7 @@ with tab_sales_money:
             "</div>"
         )
 
-    st.markdown("<div class='fw-section-title'>Daily & Weekly Sales</div>", unsafe_allow_html=True)
+    st.markdown("<div class='fw-section-title'>Sales Breakdown</div>", unsafe_allow_html=True)
     chart_cols = st.columns([1.4, 1])
     with chart_cols[0]:
         chart_data_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
