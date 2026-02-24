@@ -1309,27 +1309,6 @@ with tab_sales_money:
             )
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='fw-section-title'>Monthly Snapshot</div>", unsafe_allow_html=True)
-    monthly_snapshot_html = "".join(
-        [
-            render_sales_card(
-                "Sales TD",
-                month_sales_to_date_display,
-                month_label_td,
-                month_sales_to_date_comp,
-                month_label_td_comp,
-            ),
-            render_sales_card(
-                "Sales Est",
-                month_sales_estimate,
-                month_label_est,
-                month_sales_estimate_comp,
-                month_label_est_comp,
-            ),
-        ]
-    )
-    st.markdown(monthly_snapshot_html, unsafe_allow_html=True)
-
     sales_cols = st.columns(2)
 
     summary_df = cast(pd.DataFrame, studio_df.copy())
