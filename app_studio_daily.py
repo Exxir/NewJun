@@ -461,9 +461,11 @@ month_td_span = month_reference_ts - month_start_ts
 month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
 month_td_comp_end = cast(pd.Timestamp, min(comp_start_ts + month_td_span, comp_end_ts))
 month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end)
-month_sales_estimate_comp = sum_sales_between(comparison_df, cast(pd.Timestamp, comp_start_ts), cast(pd.Timestamp, comp_end_ts))
+comparison_month_start = cast(pd.Timestamp, month_start_ts - pd.DateOffset(years=1))
+comparison_month_end = cast(pd.Timestamp, full_month_end_ts - pd.DateOffset(years=1))
+month_sales_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end)
 month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
-month_label_est_comp = f"{comp_start_date:%b %d} – {comp_end_date:%b %d}"
+month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d}"
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
