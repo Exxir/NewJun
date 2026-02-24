@@ -1243,7 +1243,7 @@ with tab_sales_money:
         )
 
     st.markdown("<div class='fw-section-title'>Sales Breakdown</div>", unsafe_allow_html=True)
-    chart_cols = st.columns([1, 0.4])
+    chart_cols = st.columns([1.25, 0.35])
     with chart_cols[0]:
         chart_data_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
         chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison").sort_values("date")
@@ -1278,14 +1278,14 @@ with tab_sales_money:
 
             bar_chart = (
                 alt.Chart(chart_df)
-                .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
                 .encode(
                     x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
                     xOffset="series:N",
                     y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                     color=alt.Color(
                         "series:N",
-                        scale=alt.Scale(range=["#f0652a", "#545b78"]),
+                        scale=alt.Scale(range=["#f0652a", "#f5c746"]),
                         title="",
                         legend=None,
                     ),
@@ -1296,7 +1296,7 @@ with tab_sales_money:
                         alt.Tooltip("comparison_label:N", title="Comparison Date"),
                     ],
                 )
-                .properties(width=950, height=260)
+                .properties(width=1187, height=240)
             )
             st.altair_chart(bar_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
