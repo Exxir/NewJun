@@ -1201,9 +1201,8 @@ with tab_sales_money:
             tooltip = f"{comparison_label}: ${comparison_value:,.0f}"
         return (
             f"<div class='sales-dollar-card' data-tooltip='{tooltip}'>"
-            f"<div class='sales-dollar-card-label'>{label}</div>"
             f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>${amount:,.0f}</span>{sales_card_delta(amount, comparison_value)}</div>"
-            f"<div class='sales-dollar-card-sub'>{current_label}</div>"
+            f"<div class='sales-dollar-card-sub' style='color:#f5c746;'>{current_label}</div>"
             f"<div class='sales-dollar-card-sub'>Comparison: {comparison_label}</div>"
             "</div>"
         )
@@ -1228,7 +1227,7 @@ with tab_sales_money:
         st.markdown("<div class='fw-section-title'>Monthly Sales To Date</div>", unsafe_allow_html=True)
         st.markdown(
             render_sales_card(
-                "Sales TD",
+                "",
                 month_sales_to_date_display,
                 month_label_td,
                 month_sales_to_date_comp,
@@ -1240,7 +1239,7 @@ with tab_sales_money:
         st.markdown("<div class='fw-section-title'>Monthly Sales Estimate</div>", unsafe_allow_html=True)
         st.markdown(
             render_sales_card(
-                "Sales Est",
+                "",
                 month_sales_estimate,
                 month_label_est,
                 month_sales_estimate_comp,
