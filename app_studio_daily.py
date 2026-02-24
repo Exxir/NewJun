@@ -287,7 +287,7 @@ if len(history_index) > 0:
 
 horizon = st.radio(
     "Select horizon",
-    ["Daily", "Weekly", "Monthly", "Monthly Estimate"],
+    ["Daily", "Weekly", "Monthly", "Estimate"],
     horizontal=True,
     label_visibility="collapsed",
 )
@@ -310,7 +310,7 @@ comp_start_ts = pd.Timestamp(comp_start_date)
 comp_end_ts = pd.Timestamp(comp_end_date)
 
 actual_end_ts = cast(pd.Timestamp, end_ts)
-if horizon == "Monthly Estimate":
+if horizon == "Estimate":
     actual_end_ts = cast(pd.Timestamp, pd.Timestamp(max_date))
 
 filtered_selection = studio_df[
@@ -346,7 +346,7 @@ range_sales_display = range_sales
 
 forecast_values: List[float] = []
 
-if horizon == "Monthly Estimate":
+if horizon == "Estimate":
     month_start_ts = pd.Timestamp(start_date)
     month_end_ts = pd.Timestamp(end_date)
 
@@ -405,7 +405,7 @@ month_reference_ts = cast(pd.Timestamp, actual_end_ts)
 month_start_ts = cast(pd.Timestamp, pd.Timestamp(month_reference_ts).replace(day=1))
 month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= month_reference_ts)]
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
-month_sales_estimate = range_sales_display if horizon == "Monthly Estimate" else month_sales_to_date
+month_sales_estimate = range_sales_display if horizon == "Estimate" else month_sales_to_date
 month_label_td = (
     f"Sales MTD: {month_start_ts:%b %d} – {month_reference_ts:%b %d}"
     if month_sales_to_date
