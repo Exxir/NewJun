@@ -289,14 +289,12 @@ with selector_card:
             if mask.any():
                 weekday_index_map[weekday] = history_weekday_series.index[mask]
 
-    st.markdown('<div class="selector-title" style="margin-top:0.15rem;">Time horizon</div>', unsafe_allow_html=True)
     horizon = st.radio(
         "Select horizon",
         ["Daily", "Weekly", "Monthly", "Monthly Estimate"],
         horizontal=True,
         label_visibility="collapsed",
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 start_date, end_date = compute_current_dates(horizon, min_date, max_date)
 comp_start_date, comp_end_date = compute_comparison_dates(
