@@ -1190,9 +1190,10 @@ with tab_sales_money:
 
             bar_chart = (
                 alt.Chart(chart_df)
-                .mark_bar(width=30, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
                 .encode(
                     x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                    xOffset="series:N",
                     y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                     color=alt.Color(
                         "series:N",
