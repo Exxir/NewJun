@@ -166,7 +166,7 @@ header_html = (
     "<style>"
     ".primary-header {font-size: 2rem; font-weight: 700; margin: 0;}"
     ".header-divider {border-bottom: 1px solid #1e2438; margin: 0.1rem 0 0.2rem;}"
-    "div[data-testid='stVerticalBlock'] > div:nth-child(1) {padding-top: 0.3rem;}"
+    "div.block-container {padding-top: 0.5rem !important;}"
     "</style>"
     "<div class=\"primary-header\">Jungle Studio Dashboard</div>"
     "<div class=\"header-divider\"></div>"
