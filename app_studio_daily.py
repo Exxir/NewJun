@@ -1267,6 +1267,7 @@ with tab_sales_money:
             current_delta = sales_card_delta(range_sales_display, comparison_sales)
             comparison_delta = sales_card_delta(comparison_sales, range_sales_display)
             comparison_color = "#3f4a78"
+            current_bar_color = "#cda643"
             header_html = (
                 "<div class='sales-bar-container'>"
                 "<div class='sales-bar-legend' style='justify-content:center;'>"
@@ -1286,7 +1287,7 @@ with tab_sales_money:
                     y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                     color=alt.Color(
                         "series:N",
-                        scale=alt.Scale(range=[comparison_color, "#f5c746"], domain=["Comparison", "Current"]),
+                        scale=alt.Scale(range=[comparison_color, current_bar_color], domain=["Comparison", "Current"]),
                         title="",
                         legend=None,
                     ),
