@@ -287,12 +287,27 @@ if len(history_index) > 0:
 
 horizon = st.radio(
     "Select horizon",
-    ["Daily", "Weekly", "Monthly", "Estimate"],
+    ["Daily", "Weekly", "Monthly", "Estimate", "Custom"],
     horizontal=True,
     label_visibility="collapsed",
 )
 
-start_date, end_date = compute_current_dates(horizon, min_date, max_date)
+if horizon == "Custom":
+    default_start = max_date - timedelta(days=6)
+    if default_start < min_date:
+        default_start = min_date
+    custom_range_input = st.date_input(
+        "Custom range",
+        value=(default_start, max_date),
+        min_value=min_date,
+        max_value=max_date,
+    )
+    normalized_custom_range = normalize_range(custom_range_input, (default_start, max_date))
+    start_date = clamp_date(normalized_custom_range[0], min_date, max_date)
+    end_date = clamp_date(normalized_custom_range[1], min_date, max_date)
+else:
+    start_date, end_date = compute_current_dates(horizon, min_date, max_date)
+
 comp_start_date, comp_end_date = compute_comparison_dates(
     horizon,
     start_date,
