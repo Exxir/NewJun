@@ -1215,6 +1215,33 @@ with tab_sales_money:
             "</div>"
         )
 
+    monthly_cols = st.columns([1, 1])
+
+    with monthly_cols[0]:
+        st.markdown("<div class='fw-section-title'>Sales TD</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card(
+                "Sales TD",
+                month_sales_to_date_display,
+                month_label_td,
+                month_sales_to_date_comp,
+                month_label_td_comp,
+            ),
+            unsafe_allow_html=True,
+        )
+    with monthly_cols[1]:
+        st.markdown("<div class='fw-section-title'>Sales Est</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card(
+                "Sales Est",
+                month_sales_estimate,
+                month_label_est,
+                month_sales_estimate_comp,
+                month_label_est_comp,
+            ),
+            unsafe_allow_html=True,
+        )
+
     st.markdown("<div class='fw-section-title'>Sales Breakdown</div>", unsafe_allow_html=True)
     chart_cols = st.columns([1.4, 1])
     with chart_cols[0]:
