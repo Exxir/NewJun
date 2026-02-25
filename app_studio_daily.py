@@ -73,22 +73,22 @@ def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Ti
     return pd.Timestamp(index[pos])  # type: ignore[index]
 
 
-def build_chart_data(df: pd.DataFrame, series_label: str, range_label: str) -> pd.DataFrame:
+def build_chart_data(df: pd.DataFrame, series_label: str, range_label: str, column: str = "netsales") -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame({
             "date": pd.Series(dtype="datetime64[ns]"),
-            "netsales": pd.Series(dtype=float),
+            column: pd.Series(dtype=float),
             "series": pd.Series(dtype="string"),
             "weekday": pd.Series(dtype="string"),
             "range_label": pd.Series(dtype="string"),
         })
     grouped = (
-        df.groupby("date")["netsales"].sum().reset_index()
+        df.groupby("date")[column].sum().reset_index()
     )
     grouped["series"] = series_label
     grouped["weekday"] = grouped["date"].dt.strftime("%a")
     grouped["range_label"] = range_label
-    return grouped
+    return grouped.rename(columns={column: "netsales"})
 
 
 def align_date_to_weekday(target_date: date, weekday_index_map: dict[int, pd.DatetimeIndex], history_index: pd.DatetimeIndex) -> date:
@@ -286,6 +286,16 @@ if len(history_index) > 0:
         if mask.any():
             weekday_index_map[weekday] = history_weekday_series.index[mask]
 
+history_visits_series = studio_df.groupby("date")["total_visits"].sum().sort_index()
+history_visits_index: pd.DatetimeIndex = pd.DatetimeIndex(history_visits_series.index)
+weekday_index_map_visits: dict[int, pd.DatetimeIndex] = {}
+if len(history_visits_index) > 0:
+    visits_weekday_series = pd.Series(history_visits_index, index=history_visits_index).dt.weekday
+    for weekday in range(7):
+        mask = visits_weekday_series == weekday
+        if mask.any():
+            weekday_index_map_visits[weekday] = visits_weekday_series.index[mask]
+
 
 horizon = st.radio(
     "Select horizon",
@@ -341,6 +351,8 @@ if filtered_df.empty:
     st.stop()
 
 range_sales = filtered_df["netsales"].sum()
+range_trips = filtered_df["total_visits"].sum()
+range_trips_display = range_trips
 
 comparison_selection_df = studio_df[
     (studio_df["date"] >= comp_start_ts) &
@@ -348,7 +360,8 @@ comparison_selection_df = studio_df[
 ]
 comparison_df: pd.DataFrame = pd.DataFrame(comparison_selection_df).copy()
 comparison_sales = comparison_df["netsales"].sum() if not comparison_df.empty else 0.0
-yoy_multiplier = 1.0
+yoy_visits_multiplier = 1.0
+comparison_trips = comparison_df["total_visits"].sum() if not comparison_df.empty else 0.0
 comparison_delta_pct = None
 if comparison_df.empty or comparison_sales == 0:
     comparison_delta_pct = None
@@ -356,6 +369,11 @@ else:
     diff_pct = ((range_sales - comparison_sales) / comparison_sales) * 100
     comparison_delta_pct = f"{diff_pct:+.1f}%"
     yoy_multiplier = range_sales / comparison_sales if comparison_sales else 1.0
+
+if comparison_trips == 0:
+    yoy_visits_multiplier = 1.0
+else:
+    yoy_visits_multiplier = range_trips / comparison_trips if comparison_trips else 1.0
 
 
 def project_sales_for_dates(date_sequence: Sequence[pd.Timestamp]) -> List[Tuple[float, Optional[pd.Timestamp]]]:
@@ -380,6 +398,32 @@ def project_sales_for_dates(date_sequence: Sequence[pd.Timestamp]) -> List[Tuple
             source_timestamp = closest_timestamp(history_pool, candidate)
         base_value = float(history_series.loc[source_timestamp])
         projected = base_value * yoy_multiplier
+        projections.append((projected, source_timestamp))
+    return projections
+
+
+def project_visits_for_dates(date_sequence: Sequence[pd.Timestamp]) -> List[Tuple[float, Optional[pd.Timestamp]]]:
+    projections: List[Tuple[float, Optional[pd.Timestamp]]] = []
+    if len(history_visits_series) == 0:
+        return [(0.0, None) for _ in date_sequence]
+    for date_item in date_sequence:
+        target_ts = cast(pd.Timestamp, pd.Timestamp(date_item))
+        weekday = int(target_ts.dayofweek)
+        weekday_history = weekday_index_map_visits.get(weekday)
+        history_pool = weekday_history if (weekday_history is not None and len(weekday_history) > 0) else history_visits_index
+        if history_pool is None or len(history_pool) == 0:
+            projections.append((0.0, None))
+            continue
+        history_pool = cast(pd.DatetimeIndex, history_pool)
+        candidate = target_ts - pd.DateOffset(years=1)
+        if candidate <= history_pool[0]:
+            source_timestamp = cast(pd.Timestamp, history_pool[0])
+        elif candidate >= history_pool[-1]:
+            source_timestamp = cast(pd.Timestamp, history_pool[-1])
+        else:
+            source_timestamp = closest_timestamp(history_pool, candidate)
+        base_value = float(history_visits_series.loc[source_timestamp])
+        projected = base_value * yoy_visits_multiplier
         projections.append((projected, source_timestamp))
     return projections
 
@@ -424,11 +468,11 @@ comparison_period_label = f"{comp_start_date:%b %d, %Y} – {comp_end_date:%b %d
 forecast_increment = max(range_sales_display - range_sales, 0.0)
 
 
-def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> float:
+def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, column: str = "netsales") -> float:
     window = df[(df["date"] >= start) & (df["date"] <= end)]
     if window.empty:
         return 0.0
-    total = window["netsales"].sum()
+    total = window[column].sum()
     return float(total) if pd.notna(total) else 0.0
 
 month_reference_ts = cast(pd.Timestamp, min(pd.Timestamp(actual_end_ts), pd.Timestamp(end_date)))
@@ -467,6 +511,16 @@ comparison_month_end = cast(pd.Timestamp, comparison_month_start + pd.DateOffset
 month_sales_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end)
 month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
 month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d}"
+month_visits_to_date = float(month_to_date_df["total_visits"].sum()) if not month_to_date_df.empty else 0.0
+monthly_projection_remaining_visits = 0.0
+if not remaining_month_dates.empty:
+    monthly_projection_remaining_visits = sum(value for value, _ in project_visits_for_dates(list(remaining_month_dates)))
+full_month_visits_estimate_total = month_visits_to_date + monthly_projection_remaining_visits
+month_visits_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end, column="total_visits")
+month_visits_estimate_delta_pct = None
+if month_visits_estimate_comp not in (None, 0):
+    month_visits_estimate_delta_pct = ((full_month_visits_estimate_total - month_visits_estimate_comp) / month_visits_estimate_comp) * 100
+month_visits_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits")
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
@@ -482,7 +536,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Current", "Chart", "Visits", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Trips", "Current", "Chart", "Visits", "Forecast", "Occupancy", "Summary"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -1223,6 +1277,34 @@ with tab_sales_money:
             "</div>"
         )
 
+
+    def render_trips_card(amount: float, current_label: str, comparison_value: Optional[float], comparison_label: str) -> str:
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0.0):
+            tooltip = f"{comparison_label}: {format_number(comparison_value, 0)}"
+        return (
+            f"<div class='sales-dollar-card' data-tooltip='{tooltip}'>"
+            f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>{format_number(amount, 0)}</span>{sales_card_delta(amount, comparison_value)}</div>"
+            f"<div class='sales-dollar-card-sub' style='color:#f5c746;'>{current_label}</div>"
+            f"<div class='sales-dollar-card-sub'>Comparison: {comparison_label}</div>"
+            "</div>"
+        )
+
+
+    def render_trips_entry_card(title: str, amount: float, comparison_label: str, comparison_value: Optional[float]) -> str:
+        delta_html = sales_card_delta(amount, comparison_value)
+        comparison_text = comparison_label if comparison_label else "—"
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0.0):
+            tooltip = f"{comparison_text}: {format_number(comparison_value, 0)}"
+        return (
+            f"<div class='sales-entry-card' data-tooltip='{tooltip}'>"
+            f"<div class='sales-entry-header'><span class='sales-entry-title'>{title}</span>{delta_html}</div>"
+            f"<div class='sales-entry-value'>{format_number(amount, 0)}</div>"
+            f"<div class='sales-entry-meta'>Comparison: {comparison_text}</div>"
+            "</div>"
+        )
+
     monthly_cols = st.columns([1, 1])
 
     with monthly_cols[0]:
@@ -1380,6 +1462,161 @@ with tab_sales_money:
                 )
             )
         st.markdown("".join(weekly_html_parts), unsafe_allow_html=True)
-month_sales_estimate_delta_pct = None
-if month_sales_estimate_comp not in (None, 0):
-    month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
+
+
+with tab_trips:
+    trips_month_cols = st.columns([1, 1])
+
+    with trips_month_cols[0]:
+        st.markdown("<div class='fw-section-title'>Monthly Trips To Date</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_trips_card(
+                month_visits_to_date,
+                f"Trips MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d}",
+                month_visits_to_date_comp,
+                f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with trips_month_cols[1]:
+        st.markdown("<div class='fw-section-title'>Monthly Trips Estimate</div>", unsafe_allow_html=True)
+        trips_est_delta = (
+            f"{month_visits_estimate_delta_pct:+.1f}%"
+            if month_visits_estimate_delta_pct is not None
+            else "—"
+        )
+        st.markdown(
+            render_trips_card(
+                full_month_visits_estimate_total,
+                f"Trips Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y} <span style='color:#19c37d;font-weight:600;margin-left:0.35rem;'>{trips_est_delta}</span>",
+                month_visits_estimate_comp,
+                f"Prior Year: {month_label_est_comp}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div class='fw-section-title'>Trips Breakdown</div>", unsafe_allow_html=True)
+    trips_chart_cols = st.columns([1.25, 0.35])
+    with trips_chart_cols[0]:
+        trips_chart_current = build_chart_data(filtered_df, "Current", "Current", column="total_visits").sort_values("date")
+        trips_chart_comparison = build_chart_data(comparison_df, "Comparison", "Comparison", column="total_visits").sort_values("date")
+        if trips_chart_current.empty:
+            st.info("Not enough data to display the snapshot chart.")
+        else:
+            trips_comparison_color = "#3f4a78"
+            trips_current_color = "#cda643"
+            trips_chart_current["x_axis"] = trips_chart_current["date"].dt.strftime("%b %d")
+            trips_chart_current["display_label"] = trips_chart_current["date"].dt.strftime("%b %d, %Y")
+            trips_chart_current["comparison_label"] = trips_chart_current["display_label"]
+
+            trips_comparison_trimmed = trips_chart_comparison.head(len(trips_chart_current)).copy()
+            trips_comparison_trimmed["x_axis"] = trips_chart_current["x_axis"].values[:len(trips_comparison_trimmed)]
+            trips_comparison_trimmed["display_label"] = trips_chart_current["display_label"].values[:len(trips_comparison_trimmed)]
+            trips_comparison_trimmed["comparison_label"] = trips_comparison_trimmed["date"].dt.strftime("%b %d, %Y")
+
+            trips_chart_df = pd.concat([trips_chart_current, trips_comparison_trimmed], ignore_index=True)
+
+            trips_current_range = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
+            trips_comparison_range = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
+            trips_current_delta = sales_card_delta(range_trips, comparison_trips)
+            trips_comparison_delta = sales_card_delta(comparison_trips, range_trips)
+            trips_header_html = (
+                "<div class='sales-bar-container legend-dual'>"
+                "<div class='legend-row'>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:{trips_current_color};'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:{trips_current_color};'>{format_number(range_trips_display, 0)}</span><span class='legend-period'>{trips_current_range}</span><span class='legend-delta'>{trips_current_delta}</span></span>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:{trips_comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{trips_comparison_color};'>{format_number(comparison_trips, 0)}</span><span class='legend-period'>{trips_comparison_range}</span><span class='legend-delta'>{trips_comparison_delta}</span></span>"
+                "</div>"
+                "</div>"
+            )
+            st.markdown(trips_header_html, unsafe_allow_html=True)
+
+            trips_chart = (
+                alt.Chart(trips_chart_df)
+                .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                .encode(
+                    x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                    xOffset="series:N",
+                    y=alt.Y("netsales:Q", title="Trips", axis=alt.Axis(labelColor="#aeb3d1")),
+                    color=alt.Color(
+                        "series:N",
+                        scale=alt.Scale(range=[trips_comparison_color, trips_current_color], domain=["Comparison", "Current"]),
+                        title="",
+                        legend=None,
+                    ),
+                    tooltip=[
+                        alt.Tooltip("series:N", title="Series"),
+                        alt.Tooltip("display_label:N", title="Current Date"),
+                        alt.Tooltip("netsales:Q", title="Trips", format=","),
+                        alt.Tooltip("comparison_label:N", title="Comparison Date"),
+                    ],
+                )
+                .properties(width=1187, height=240)
+            )
+            st.altair_chart(trips_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    trips_cols = st.columns(2)
+    trips_summary_df = cast(pd.DataFrame, studio_df.copy())
+    trips_summary_df["date"] = pd.to_datetime(trips_summary_df["date"], errors="coerce")
+    trips_summary_df["week_start"] = trips_summary_df["date"].dt.to_period("W-SUN").dt.start_time
+
+    trips_comparison_summary_df = cast(pd.DataFrame, comparison_df.copy())
+    trips_comparison_summary_df["date"] = pd.to_datetime(trips_comparison_summary_df["date"], errors="coerce")
+    trips_comparison_summary_df["week_start"] = trips_comparison_summary_df["date"].dt.to_period("W-SUN").dt.start_time
+    trips_comparison_daily_totals = trips_comparison_summary_df.groupby("date")["total_visits"].sum().sort_index(ascending=False)
+    trips_comparison_weekly_totals = trips_comparison_summary_df.groupby("week_start")["total_visits"].sum().sort_index(ascending=False)
+
+    with trips_cols[0]:
+        st.markdown("<div class='fw-section-title'>Daily Trips</div>", unsafe_allow_html=True)
+        trips_daily_totals = trips_summary_df.groupby("date")["total_visits"].sum().sort_index(ascending=False)
+        trips_daily_rows = trips_daily_totals.head(6).reset_index()
+        trips_daily_html_parts = []
+        trips_comparison_daily_rows = trips_comparison_daily_totals.head(len(trips_daily_rows)).reset_index()
+        for idx, row in enumerate(trips_daily_rows.to_dict("records")):
+            day = cast(pd.Timestamp, pd.Timestamp(row["date"]))
+            day_value = float(row["total_visits"])
+            comp_label = "—"
+            comp_value: Optional[float] = None
+            if idx < len(trips_comparison_daily_rows):
+                comp_row = trips_comparison_daily_rows.iloc[idx]
+                comp_day = cast(pd.Timestamp, pd.Timestamp(comp_row["date"]))
+                comp_value = float(comp_row["total_visits"])
+                comp_label = comp_day.strftime("%b %d, %Y")
+            trips_daily_html_parts.append(
+                render_trips_entry_card(
+                    day.strftime("%b %d, %Y"),
+                    day_value,
+                    comp_label,
+                    comp_value,
+                )
+            )
+        st.markdown("".join(trips_daily_html_parts), unsafe_allow_html=True)
+
+    with trips_cols[1]:
+        st.markdown("<div class='fw-section-title'>Weekly Trips</div>", unsafe_allow_html=True)
+        trips_weekly_totals = trips_summary_df.groupby("week_start")["total_visits"].sum().sort_index(ascending=False)
+        trips_weekly_rows = trips_weekly_totals.head(6).reset_index()
+        trips_weekly_html_parts = []
+        trips_comparison_weekly_rows = trips_comparison_weekly_totals.head(len(trips_weekly_rows)).reset_index()
+        for idx, row in enumerate(trips_weekly_rows.to_dict("records")):
+            week_start = cast(pd.Timestamp, pd.Timestamp(row["week_start"]))
+            week_end = week_start + pd.Timedelta(days=6)
+            week_value = float(row["total_visits"])
+            comp_label = "—"
+            comp_value: Optional[float] = None
+            if idx < len(trips_comparison_weekly_rows):
+                comp_row = trips_comparison_weekly_rows.iloc[idx]
+                comp_week = cast(pd.Timestamp, pd.Timestamp(comp_row["week_start"]))
+                comp_week_end = comp_week + pd.Timedelta(days=6)
+                comp_value = float(comp_row["total_visits"])
+                comp_label = f"{comp_week:%b %d} - {comp_week_end:%b %d, %Y}"
+            trips_weekly_html_parts.append(
+                render_trips_entry_card(
+                    f"{week_start:%b %d} - {week_end:%b %d, %Y}",
+                    week_value,
+                    comp_label,
+                    comp_value,
+                )
+            )
+        st.markdown("".join(trips_weekly_html_parts), unsafe_allow_html=True)
