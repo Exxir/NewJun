@@ -525,8 +525,8 @@ month_standard_to_date = float(month_to_date_df["mt_visits"].sum()) if "mt_visit
 month_classpass_to_date = float(month_to_date_df["cp_visits"].sum()) if "cp_visits" in month_to_date_df else 0.0
 standard_comp_df = comparison_df if "mt_visits" in comparison_df else pd.DataFrame({"date": [], "mt_visits": []})
 classpass_comp_df = comparison_df if "cp_visits" in comparison_df else pd.DataFrame({"date": [], "cp_visits": []})
-month_standard_comp = sum_sales_between(standard_comp_df, month_td_comp_start, month_td_comp_end, column="mt_visits") if not standard_comp_df.empty else 0.0
-month_classpass_comp = sum_sales_between(classpass_comp_df, month_td_comp_start, month_td_comp_end, column="cp_visits") if not classpass_comp_df.empty else 0.0
+month_standard_comp = sum_sales_between(standard_comp_df, month_td_comp_start, month_td_comp_end, column="mt_visits") if "mt_visits" in standard_comp_df else 0.0
+month_classpass_comp = sum_sales_between(classpass_comp_df, month_td_comp_start, month_td_comp_end, column="cp_visits") if "cp_visits" in classpass_comp_df else 0.0
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
