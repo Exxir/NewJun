@@ -521,6 +521,10 @@ month_visits_estimate_delta_pct = None
 if month_visits_estimate_comp not in (None, 0):
     month_visits_estimate_delta_pct = ((full_month_visits_estimate_total - month_visits_estimate_comp) / month_visits_estimate_comp) * 100
 month_visits_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits")
+month_standard_to_date = float(month_to_date_df["mt_visits"].sum()) if "mt_visits" in month_to_date_df else 0.0
+month_classpass_to_date = float(month_to_date_df["cp_visits"].sum()) if "cp_visits" in month_to_date_df else 0.0
+month_standard_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits")
+month_classpass_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
@@ -1492,6 +1496,31 @@ with tab_trips:
                 f"Trips Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y} <span style='color:#19c37d;font-weight:600;margin-left:0.35rem;'>{trips_est_delta}</span>",
                 month_visits_estimate_comp,
                 f"Prior Year: {month_label_est_comp}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    trips_mix_cols = st.columns([1, 1])
+    with trips_mix_cols[0]:
+        st.markdown("<div class='fw-section-title'>Standard Visits</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_trips_card(
+                month_standard_to_date,
+                f"Standard: {month_start_ts:%b %d} – {actual_month_end:%b %d}",
+                month_standard_comp,
+                f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with trips_mix_cols[1]:
+        st.markdown("<div class='fw-section-title'>Classpass Visits</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_trips_card(
+                month_classpass_to_date,
+                f"Classpass: {month_start_ts:%b %d} – {actual_month_end:%b %d}",
+                month_classpass_comp,
+                f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}",
             ),
             unsafe_allow_html=True,
         )
