@@ -523,10 +523,17 @@ if month_visits_estimate_comp not in (None, 0):
 month_visits_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits")
 month_standard_to_date = float(month_to_date_df["mt_visits"].sum()) if "mt_visits" in month_to_date_df else 0.0
 month_classpass_to_date = float(month_to_date_df["cp_visits"].sum()) if "cp_visits" in month_to_date_df else 0.0
-standard_comp_df = comparison_df if "mt_visits" in comparison_df else pd.DataFrame({"date": [], "mt_visits": []})
-classpass_comp_df = comparison_df if "cp_visits" in comparison_df else pd.DataFrame({"date": [], "cp_visits": []})
-month_standard_comp = sum_sales_between(standard_comp_df, month_td_comp_start, month_td_comp_end, column="mt_visits") if "mt_visits" in standard_comp_df else 0.0
-month_classpass_comp = sum_sales_between(classpass_comp_df, month_td_comp_start, month_td_comp_end, column="cp_visits") if "cp_visits" in classpass_comp_df else 0.0
+if "mt_visits" in comparison_df.columns:
+    standard_comp_df = comparison_df[["date", "mt_visits"]].copy()
+    month_standard_comp = sum_sales_between(standard_comp_df.assign(date=pd.to_datetime(standard_comp_df["date"])), month_td_comp_start, month_td_comp_end, column="mt_visits")
+else:
+    month_standard_comp = 0.0
+
+if "cp_visits" in comparison_df.columns:
+    classpass_comp_df = comparison_df[["date", "cp_visits"]].copy()
+    month_classpass_comp = sum_sales_between(classpass_comp_df.assign(date=pd.to_datetime(classpass_comp_df["date"])), month_td_comp_start, month_td_comp_end, column="cp_visits")
+else:
+    month_classpass_comp = 0.0
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
