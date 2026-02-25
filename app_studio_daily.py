@@ -60,6 +60,11 @@ def safe_sum(df: pd.DataFrame, column: str) -> Optional[float]:
     return float(total) if pd.notna(total) else None
 
 
+def sum_or_zero(df: pd.DataFrame, column: str) -> float:
+    total = safe_sum(df, column)
+    return total if total is not None else 0.0
+
+
 def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Timestamp:
     if len(index) == 0:
         return candidate
@@ -228,6 +233,7 @@ def load_data():
             "date",
             "net_sales",
             "total_visits",
+            "mt_visits",
             "capacity",
             "classes",
             "first_time",
@@ -240,8 +246,16 @@ def load_data():
     df["date"] = pd.to_datetime(df["date"])
     df = df.rename(columns={"net_sales": "netsales"})
     df["weekday"] = df["date"].dt.strftime("%A")
-    for column in ("total_visits", "capacity", "classes", "first_time", "cp_visits"):
+    for column in ("total_visits", "mt_visits", "capacity", "classes", "first_time", "cp_visits"):
         df[column] = pd.to_numeric(df[column], errors="coerce")
+    if "mt_visits" not in df.columns:
+        df["mt_visits"] = pd.NA
+    if "cp_visits" not in df.columns:
+        df["cp_visits"] = pd.NA
+    cp_series = df["cp_visits"].fillna(0)
+    standard_fallback = df["total_visits"].fillna(0) - cp_series
+    df["mt_visits"] = df["mt_visits"].fillna(standard_fallback)
+    df["mt_visits"] = df["mt_visits"].clip(lower=0)
     return df
 
 
@@ -360,6 +374,7 @@ comparison_selection_df = studio_df[
 ]
 comparison_df: pd.DataFrame = pd.DataFrame(comparison_selection_df).copy()
 comparison_sales = comparison_df["netsales"].sum() if not comparison_df.empty else 0.0
+yoy_multiplier = 1.0
 yoy_visits_multiplier = 1.0
 comparison_trips = comparison_df["total_visits"].sum() if not comparison_df.empty else 0.0
 comparison_delta_pct = None
@@ -470,7 +485,7 @@ forecast_increment = max(range_sales_display - range_sales, 0.0)
 
 def sum_sales_between(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, column: str = "netsales") -> float:
     window = df[(df["date"] >= start) & (df["date"] <= end)]
-    if window.empty:
+    if window.empty or column not in window.columns:
         return 0.0
     total = window[column].sum()
     return float(total) if pd.notna(total) else 0.0
@@ -483,7 +498,7 @@ full_month_end_ts = cast(pd.Timestamp, month_start_ts.replace(day=month_last_day
 actual_month_end = cast(pd.Timestamp, min(month_reference_ts, full_month_end_ts))
 month_end_ts = full_month_end_ts
 
-month_to_date_df = studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= actual_month_end)]
+month_to_date_df = cast(pd.DataFrame, studio_df[(studio_df["date"] >= month_start_ts) & (studio_df["date"] <= actual_month_end)])
 month_sales_to_date = float(month_to_date_df["netsales"].sum()) if not month_to_date_df.empty else 0.0
 
 monthly_projection_remaining_total = 0.0
@@ -507,11 +522,12 @@ month_td_comp_start = cast(pd.Timestamp, comp_start_ts)
 month_td_comp_end = cast(pd.Timestamp, min(comp_start_ts + month_td_span, comp_end_ts))
 month_sales_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end)
 comparison_month_start = cast(pd.Timestamp, pd.Timestamp(comp_start_date).replace(day=1))
-comparison_month_end = cast(pd.Timestamp, comparison_month_start + pd.DateOffset(days=month_last_day - 1))
+comparison_month_last_day = monthrange(comparison_month_start.year, comparison_month_start.month)[1]
+comparison_month_end = cast(pd.Timestamp, comparison_month_start.replace(day=comparison_month_last_day))
 month_sales_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end)
 month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
-month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d}"
-month_visits_to_date = float(month_to_date_df["total_visits"].sum()) if not month_to_date_df.empty else 0.0
+month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d, %Y}"
+month_visits_to_date = sum_or_zero(month_to_date_df, "total_visits")
 monthly_projection_remaining_visits = 0.0
 if not remaining_month_dates.empty:
     monthly_projection_remaining_visits = sum(value for value, _ in project_visits_for_dates(list(remaining_month_dates)))
@@ -521,20 +537,10 @@ month_visits_estimate_delta_pct = None
 if month_visits_estimate_comp not in (None, 0):
     month_visits_estimate_delta_pct = ((full_month_visits_estimate_total - month_visits_estimate_comp) / month_visits_estimate_comp) * 100
 month_visits_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits")
-month_standard_to_date = float(month_to_date_df["mt_visits"].sum()) if "mt_visits" in month_to_date_df else 0.0
-month_classpass_to_date = float(month_to_date_df["cp_visits"].sum()) if "cp_visits" in month_to_date_df else 0.0
-if "mt_visits" in comparison_df.columns:
-    standard_comp_df = comparison_df[["date", "mt_visits"]].copy()
-    standard_comp_df["date"] = pd.to_datetime(standard_comp_df["date"])
-    month_standard_comp = sum_sales_between(pd.DataFrame(standard_comp_df), month_td_comp_start, month_td_comp_end, column="mt_visits")
-else:
-    month_standard_comp = 0.0
-
-if "cp_visits" in comparison_df.columns:
-    classpass_comp_df = comparison_df[["date", "cp_visits"]].copy()
-    month_classpass_comp = sum_sales_between(classpass_comp_df.assign(date=pd.to_datetime(classpass_comp_df["date"])), month_td_comp_start, month_td_comp_end, column="cp_visits")
-else:
-    month_classpass_comp = 0.0
+month_standard_to_date = sum_or_zero(month_to_date_df, "mt_visits")
+month_classpass_to_date = sum_or_zero(month_to_date_df, "cp_visits")
+month_standard_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits")
+month_classpass_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
