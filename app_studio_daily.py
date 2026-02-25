@@ -525,7 +525,8 @@ month_standard_to_date = float(month_to_date_df["mt_visits"].sum()) if "mt_visit
 month_classpass_to_date = float(month_to_date_df["cp_visits"].sum()) if "cp_visits" in month_to_date_df else 0.0
 if "mt_visits" in comparison_df.columns:
     standard_comp_df = comparison_df[["date", "mt_visits"]].copy()
-    month_standard_comp = sum_sales_between(standard_comp_df.assign(date=pd.to_datetime(standard_comp_df["date"])), month_td_comp_start, month_td_comp_end, column="mt_visits")
+    standard_comp_df["date"] = pd.to_datetime(standard_comp_df["date"])
+    month_standard_comp = sum_sales_between(pd.DataFrame(standard_comp_df), month_td_comp_start, month_td_comp_end, column="mt_visits")
 else:
     month_standard_comp = 0.0
 
