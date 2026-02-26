@@ -8,7 +8,7 @@ Simple Streamlit app that connects to Supabase to display monthly net sales per 
 2. Create `.streamlit/secrets.toml` with:
    ```toml
    [general]
-   SUPABASE_DB_URL="postgresql://..."
+   SUPABASE_DB_URL="postgresql://postgres.wobfyljzwasqsmcaxfiu:ra0sF2fMJJ9yL8@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
    ```
 3. Run locally: `streamlit run app.py`
 4. Studio daily dashboard (occupancy + FW dashboard tabs): `streamlit run app_studio_daily.py`

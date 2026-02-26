@@ -244,7 +244,7 @@ def load_data():
             "mt_sales_mat",
             "mt_sales_ref",
             "mt_sales_total"
-        FROM public.junalldb_metrics
+        FROM public.studio_daily_metrics
     """)
     with engine.connect() as conn:
         df = pd.read_sql(query, conn)
@@ -274,6 +274,7 @@ def load_data():
     for column in numeric_columns:
         if column in df.columns:
             df[column] = pd.to_numeric(df[column], errors="coerce")
+
     def safe_sales_series(column: str) -> pd.Series:
         if column in df.columns:
             series = cast(pd.Series, df[column])
@@ -287,10 +288,23 @@ def load_data():
         safe_sales_series("mt_sales_ref"),
     ]
     df["netsales"] = sum(sales_components)
-    df["cp_visits"] = df["cp_visits"].fillna(0)
-    df["total_visits"] = df["total_visits"].fillna(df["cp_visits"])
-    df["mt_visits"] = df["total_visits"].fillna(0) - df["cp_visits"].fillna(0)
-    df["mt_visits"] = df["mt_visits"].clip(lower=0)
+    cp_visits_series = df.get("cp_visits")
+    if cp_visits_series is None:
+        cp_visits_series = pd.Series(0, index=df.index, dtype=float)
+    cp_visits_series = cp_visits_series.fillna(0)
+    total_visits_series = df.get("total_visits")
+    if total_visits_series is None:
+        total_visits_series = cp_visits_series.copy()
+    total_visits_series = total_visits_series.fillna(cp_visits_series)
+    df["cp_visits"] = cp_visits_series
+    df["total_visits"] = total_visits_series
+    mt_visits_series = df.get("mt_visits")
+    fallback_series = total_visits_series - cp_visits_series
+    if mt_visits_series is None:
+        mt_visits_series = fallback_series
+    else:
+        mt_visits_series = mt_visits_series.fillna(fallback_series)
+    df["mt_visits"] = mt_visits_series.clip(lower=0)
     df["weekday"] = df["date"].dt.strftime("%A")
     if "capacity" not in df.columns:
         df["capacity"] = pd.NA
@@ -300,8 +314,7 @@ def load_data():
 df = load_data()
 
 # --- Studio Selector ---
-EXCLUDED_STUDIOS = {"JBAR", "JFWR"}
-studios = sorted(studio for studio in df["studio"].unique() if studio not in EXCLUDED_STUDIOS)
+studios = sorted(df["studio"].unique())
 default_selection = studios[:1]
 st.markdown('<div class="selector-title" style="font-weight:700;font-size:1.15em;">Jungle Dashboard</div>', unsafe_allow_html=True)
 selected_studios = st.multiselect(
