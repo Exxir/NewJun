@@ -236,7 +236,7 @@ def load_data():
             "total_visits_mat",
             "mt_visits_ref",
             "cp_visits_mat",
-            "cp_visits_ref",
+            "cp_visit_ref",
             "ft_mat",
             "ft_ref",
             "cp_sales_mat",
@@ -254,6 +254,7 @@ def load_data():
         "total_visits_mat": "total_visits",
         "cp_visits_mat": "cp_visits",
         "ft_mat": "first_time",
+        "cp_visit_ref": "cp_visits_ref",
     }
     df = df.rename(columns=rename_map)
     numeric_columns = (
@@ -262,7 +263,7 @@ def load_data():
         "total_visits",
         "mt_visits_ref",
         "cp_visits",
-        "cp_visits_ref",
+        "cp_visit_ref",
         "first_time",
         "ft_ref",
         "cp_sales_mat",
