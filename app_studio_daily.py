@@ -231,38 +231,77 @@ def load_data():
         SELECT
             "studio",
             "date",
-            "net_sales",
-            "total_visits",
-            "mt_visits",
-            "capacity",
-            "classes",
-            "first_time",
-            "cp_visits"
-        FROM public.studio_daily_metrics
-        WHERE "net_sales" IS NOT NULL
+            "class_mat",
+            "class_ref",
+            "total_visits_mat",
+            "mt_visits_ref",
+            "cp_visits_mat",
+            "cp_visits_ref",
+            "ft_mat",
+            "ft_ref",
+            "cp_sales_mat",
+            "cp_sales_ref",
+            "mt_sales_mat",
+            "mt_sales_ref",
+            "mt_sales_total"
+        FROM public.junalldb_metrics
     """)
     with engine.connect() as conn:
         df = pd.read_sql(query, conn)
     df["date"] = pd.to_datetime(df["date"])
-    df = df.rename(columns={"net_sales": "netsales"})
-    df["weekday"] = df["date"].dt.strftime("%A")
-    for column in ("total_visits", "mt_visits", "capacity", "classes", "first_time", "cp_visits"):
-        df[column] = pd.to_numeric(df[column], errors="coerce")
-    if "mt_visits" not in df.columns:
-        df["mt_visits"] = pd.NA
-    if "cp_visits" not in df.columns:
-        df["cp_visits"] = pd.NA
-    cp_series = df["cp_visits"].fillna(0)
-    standard_fallback = df["total_visits"].fillna(0) - cp_series
-    df["mt_visits"] = df["mt_visits"].fillna(standard_fallback)
+    rename_map = {
+        "class_mat": "classes",
+        "total_visits_mat": "total_visits",
+        "cp_visits_mat": "cp_visits",
+        "ft_mat": "first_time",
+    }
+    df = df.rename(columns=rename_map)
+    numeric_columns = (
+        "classes",
+        "class_ref",
+        "total_visits",
+        "mt_visits_ref",
+        "cp_visits",
+        "cp_visits_ref",
+        "first_time",
+        "ft_ref",
+        "cp_sales_mat",
+        "cp_sales_ref",
+        "mt_sales_mat",
+        "mt_sales_ref",
+        "mt_sales_total",
+    )
+    for column in numeric_columns:
+        if column in df.columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
+    def safe_sales_series(column: str) -> pd.Series:
+        if column in df.columns:
+            series = cast(pd.Series, df[column])
+            return series.fillna(0)
+        return pd.Series(0, index=df.index, dtype=float)
+
+    sales_components = [
+        safe_sales_series("cp_sales_mat"),
+        safe_sales_series("cp_sales_ref"),
+        safe_sales_series("mt_sales_mat"),
+        safe_sales_series("mt_sales_ref"),
+    ]
+    df["netsales"] = sum(sales_components)
+    df["cp_visits"] = df["cp_visits"].fillna(0)
+    df["total_visits"] = df["total_visits"].fillna(df["cp_visits"])
+    df["mt_visits"] = df["total_visits"].fillna(0) - df["cp_visits"].fillna(0)
     df["mt_visits"] = df["mt_visits"].clip(lower=0)
+    df["weekday"] = df["date"].dt.strftime("%A")
+    if "capacity" not in df.columns:
+        df["capacity"] = pd.NA
     return df
 
 
 df = load_data()
 
 # --- Studio Selector ---
-studios = sorted(df["studio"].unique())
+EXCLUDED_STUDIOS = {"JBAR", "JFWR"}
+studios = sorted(studio for studio in df["studio"].unique() if studio not in EXCLUDED_STUDIOS)
 default_selection = studios[:1]
 st.markdown('<div class="selector-title" style="font-weight:700;font-size:1.15em;">Jungle Dashboard</div>', unsafe_allow_html=True)
 selected_studios = st.multiselect(
