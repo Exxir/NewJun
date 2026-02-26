@@ -57,6 +57,17 @@ python scripts/import_junalldb.py --csv \
 - Use `--dry-run` to validate parsing without writing.
 - The script normalizes the column names (`class_mat`, `cp_sales_mat`, etc.) and upserts into `public.junalldb_metrics` by default, creating the table if needed.
 
+### Removing legacy ranges
+
+If you need to clear rows for a specific studio/date range, run:
+
+```
+python scripts/delete_jba_range.py 2026-02-25 2026-07-11 --studio JBA
+```
+
+- Add `--dry-run` to preview counts without deleting.
+- Uses `SUPABASE_DB_URL` unless you override with `--db-url`.
+
 ## Deploy
 
 Push to `main` (repo linked to Streamlit Cloud) with `.streamlit/config.toml` + secrets configured in the Streamlit dashboard.
