@@ -65,6 +65,24 @@ def sum_or_zero(df: pd.DataFrame, column: str) -> float:
     return total if total is not None else 0.0
 
 
+def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
+    if df.empty:
+        return None
+    mat_visits = sum_or_zero(df, "total_visits")
+    mt_ref_visits = sum_or_zero(df, "mt_visits_ref")
+    cp_ref_visits = sum_or_zero(df, "cp_visits_ref")
+    numer = mat_visits + mt_ref_visits + cp_ref_visits
+    capacity_mat = sum_or_zero(df, "capacity_mat")
+    capacity_ref = sum_or_zero(df, "capacity_ref")
+    classes_mat = sum_or_zero(df, "classes")
+    classes_ref = sum_or_zero(df, "class_ref")
+    capacity_total = capacity_mat + capacity_ref
+    classes_total = classes_mat + classes_ref
+    if capacity_total in (None, 0) or classes_total in (None, 0) or numer == 0:
+        return None
+    return numer / (capacity_total * classes_total)
+
+
 def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Timestamp:
     if len(index) == 0:
         return candidate
@@ -826,16 +844,7 @@ with tab_snap:
         return (current / comparison) - 1
 
     def occ_ratio(df: pd.DataFrame) -> Optional[float]:
-        if df.empty or "total_visits" not in df.columns:
-            return None
-        if {"capacity", "classes"}.issubset(df.columns):
-            denom = (df["capacity"] * df["classes"]).replace({0: pd.NA}).sum()
-        else:
-            denom = 0
-        if denom in (None, 0):
-            return None
-        numer = df["total_visits"].fillna(0).sum()
-        return numer / denom if denom else None
+        return combined_occupancy_ratio(df)
 
     def ratio_from_columns(df: pd.DataFrame, numer: str, denom: str) -> Optional[float]:
         num = safe_sum(df, numer)
@@ -846,19 +855,19 @@ with tab_snap:
 
     def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
         numer = safe_sum(df, "total_visits")
-        denom = safe_sum(df, "capacity_mat")
-        classes_sum = safe_sum(df, "classes")
-        if numer is None or denom in (None, 0) or classes_sum in (None, 0):
+        capacity_sum = sum_or_zero(df, "capacity_mat")
+        classes_sum = sum_or_zero(df, "classes")
+        if numer in (None, 0) or capacity_sum == 0 or classes_sum == 0:
             return None
-        return numer / (denom * classes_sum)
+        return numer / (capacity_sum * classes_sum)
 
     def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
         mt_ref = safe_sum(df, "mt_visits_ref")
         cp_ref = safe_sum(df, "cp_visits_ref")
         numer = (mt_ref or 0) + (cp_ref or 0)
-        capacity_ref = safe_sum(df, "capacity_ref")
-        classes_ref = safe_sum(df, "class_ref")
-        if capacity_ref in (None, 0) or classes_ref in (None, 0) or numer == 0:
+        capacity_ref = sum_or_zero(df, "capacity_ref")
+        classes_ref = sum_or_zero(df, "class_ref")
+        if capacity_ref == 0 or classes_ref == 0 or numer == 0:
             return None
         return numer / (capacity_ref * classes_ref)
 
@@ -1011,14 +1020,7 @@ with tab_forecast:
 
 
 def calculate_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
-    if df.empty:
-        return None
-    capacity_classes = (df["capacity"] * df["classes"]).fillna(0)
-    denominator = capacity_classes.sum()
-    if denominator == 0:
-        return None
-    numerator = df["total_visits"].fillna(0).sum()
-    return numerator / denominator if denominator else None
+    return combined_occupancy_ratio(df)
 
 
 with tab_occupancy:
