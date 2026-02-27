@@ -666,7 +666,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_new_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "New Snap", "Sales", "Visits", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -959,12 +959,6 @@ with tab_snap:
         )
 
     render_snap_cards()
-
-
-with tab_new_snap:
-    render_snap_cards()
-
-
 with tab_forecast:
     if history_series.empty:
         st.info("Not enough historical data to project future sales.")
