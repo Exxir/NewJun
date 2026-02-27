@@ -72,11 +72,19 @@ def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     mt_ref_visits = sum_or_zero(df, "mt_visits_ref")
     cp_ref_visits = sum_or_zero(df, "cp_visits_ref")
     numer = mat_visits + mt_ref_visits + cp_ref_visits
-    capacity_mat = sum_or_zero(df, "capacity_mat")
-    capacity_ref = sum_or_zero(df, "capacity_ref")
-    classes_mat = sum_or_zero(df, "classes")
-    classes_ref = sum_or_zero(df, "class_ref")
-    denom = (capacity_mat * classes_mat) + (capacity_ref * classes_ref)
+    def column_or_zero(name: str) -> pd.Series:
+        if name in df.columns:
+            series = cast(pd.Series, df[name])
+            return series.fillna(0)
+        return pd.Series(0.0, index=df.index)
+
+    capacity_mat = column_or_zero("capacity_mat")
+    classes_mat = column_or_zero("classes")
+    capacity_ref = column_or_zero("capacity_ref")
+    classes_ref = column_or_zero("class_ref")
+    mat_slots = float((capacity_mat * classes_mat).sum())
+    ref_slots = float((capacity_ref * classes_ref).sum())
+    denom = mat_slots + ref_slots
     if denom == 0 or numer == 0:
         return None
     return numer / denom
