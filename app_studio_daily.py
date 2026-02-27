@@ -915,7 +915,7 @@ with tab_snap:
         ("FT Visit", selected_ft, comparison_ft, "number", None),
         ("Mat Occ %", mat_occupancy(filtered_df), mat_occupancy(comparison_df), "percent", None),
         ("Reformer Occ %", reformer_occupancy(filtered_df), reformer_occupancy(comparison_df), "percent", None),
-        ("Visits", selected_visits_total, comparison_visits_total, "number", None),
+        ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
         ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
 
