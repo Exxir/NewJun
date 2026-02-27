@@ -902,11 +902,11 @@ with tab_occ_percent:
             "compute": lambda df: ratio_from_columns(df, "cp_visits", "total_visits"),
         },
         "mat_occ": {
-            "label": "Mat Occ %",
+            "label": "Mat Occupancy %",
             "compute": mat_occupancy,
         },
         "reformer_occ": {
-            "label": "Reformer Occ %",
+            "label": "Ref Occupancy %",
             "compute": reformer_occupancy,
         },
     }
@@ -981,14 +981,14 @@ with tab_occ_percent:
 
     occ_mix_cols = st.columns([1, 1])
     with occ_mix_cols[0]:
-        st.markdown("<div class='fw-section-title'>Mat Occ %</div>", unsafe_allow_html=True)
+        st.markdown("<div class='fw-section-title'>Mat Occupancy %</div>", unsafe_allow_html=True)
         st.markdown(
             render_occ_card("mat_occ", selected_mat_occ, f"Mat Occ: {range_label}", comparison_mat_occ, comparison_label),
             unsafe_allow_html=True,
         )
 
     with occ_mix_cols[1]:
-        st.markdown("<div class='fw-section-title'>Reformer Occ %</div>", unsafe_allow_html=True)
+        st.markdown("<div class='fw-section-title'>Ref Occupancy %</div>", unsafe_allow_html=True)
         st.markdown(
             render_occ_card("reformer_occ", selected_reformer_occ, f"Reformer Occ: {range_label}", comparison_reformer_occ, comparison_label),
             unsafe_allow_html=True,
@@ -1280,8 +1280,8 @@ with tab_snap:
         ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
         ("Occupancy %", selected_occ, comparison_occ, "percent", "Occ %"),
         ("Classpass %", selected_cp, comparison_cp, "percent", "Occ %"),
-        ("Mat Occ %", selected_mat_occ, comparison_mat_occ, "percent", "Occ %"),
-        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ, "percent", "Occ %"),
+        ("Mat Occupancy %", selected_mat_occ, comparison_mat_occ, "percent", "Occ %"),
+        ("Ref Occupancy %", selected_reformer_occ, comparison_reformer_occ, "percent", "Occ %"),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
     ]
