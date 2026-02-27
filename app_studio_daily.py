@@ -1083,6 +1083,7 @@ with tab_occ_percent:
         )
         st.altair_chart(occ_chart, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
+        render_toggle_links(active_metric_key)
 
     render_toggle_links(active_metric_key)
 
@@ -1277,7 +1278,7 @@ with tab_snap:
     cards = [
         ("Sales", range_sales_display, comparison_sales, "currency", "Sales"),
         ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
-        ("Occupancy %", selected_occ, comparison_occ, "percent", "Occupancy"),
+        ("Occupancy %", selected_occ, comparison_occ, "percent", "Occ %"),
         ("Classpass %", selected_cp, comparison_cp, "percent", None),
         ("Mat Occ %", selected_mat_occ, comparison_mat_occ, "percent", None),
         ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ, "percent", None),
