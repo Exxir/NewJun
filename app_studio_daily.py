@@ -461,12 +461,19 @@ if len(history_visits_index) > 0:
             weekday_index_map_visits[weekday] = visits_weekday_series.index[mask]
 
 
+horizon_options = ["Monthly", "Weekly", "Daily", "Custom"]
+horizon_default = st.session_state.get("selected_horizon", "Monthly")
+if horizon_default not in horizon_options:
+    horizon_default = "Monthly"
+default_index = horizon_options.index(horizon_default)
 horizon = st.radio(
     "Select horizon",
-    ["Daily", "Weekly", "Monthly", "Custom"],
+    horizon_options,
+    index=default_index,
     horizontal=True,
     label_visibility="collapsed",
 )
+st.session_state["selected_horizon"] = horizon
 
 if horizon == "Custom":
     default_start = max_date - timedelta(days=6)
