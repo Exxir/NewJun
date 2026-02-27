@@ -731,7 +731,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Occ %", "rawdata", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Chart", "Clients", "Forecast", "Occupancy", "Summary", "Data"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -1724,7 +1724,7 @@ def render_summary_content():
         st.markdown("".join(daily_html_parts), unsafe_allow_html=True)
 
 
-with tab_fw_dashboard:
+with tab_data:
     render_summary_content()
 
 with tab_sales_money:
