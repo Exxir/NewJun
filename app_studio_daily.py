@@ -938,60 +938,58 @@ with tab_occ_percent:
             })
         return pd.DataFrame(rows)
 
-    occ_chart_cols = st.columns([1, 1])
-    with occ_chart_cols[0]:
-        st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
-        current_occ_chart = build_occ_chart_df(filtered_df, "Current")
-        comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
-        if current_occ_chart.empty:
-            st.info("Not enough data to display the occupancy breakdown chart.")
-        else:
-            current_occ_chart = current_occ_chart.sort_values("date")
-            comparison_occ_chart = comparison_occ_chart.sort_values("date")
-            current_occ_chart["x_axis"] = current_occ_chart["date"].dt.strftime("%b %d")
-            current_occ_chart["display_label"] = current_occ_chart["date"].dt.strftime("%b %d, %Y")
-            current_occ_chart["comparison_label"] = current_occ_chart["display_label"]
-            comparison_trimmed = comparison_occ_chart.head(len(current_occ_chart)).copy()
-            comparison_trimmed["x_axis"] = current_occ_chart["x_axis"].values[:len(comparison_trimmed)]
-            comparison_trimmed["display_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
-            comparison_trimmed["comparison_label"] = comparison_trimmed["display_label"]
-            occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
+    st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
+    current_occ_chart = build_occ_chart_df(filtered_df, "Current")
+    comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
+    if current_occ_chart.empty:
+        st.info("Not enough data to display the occupancy breakdown chart.")
+    else:
+        current_occ_chart = current_occ_chart.sort_values("date")
+        comparison_occ_chart = comparison_occ_chart.sort_values("date")
+        current_occ_chart["x_axis"] = current_occ_chart["date"].dt.strftime("%b %d")
+        current_occ_chart["display_label"] = current_occ_chart["date"].dt.strftime("%b %d, %Y")
+        current_occ_chart["comparison_label"] = current_occ_chart["display_label"]
+        comparison_trimmed = comparison_occ_chart.head(len(current_occ_chart)).copy()
+        comparison_trimmed["x_axis"] = current_occ_chart["x_axis"].values[:len(comparison_trimmed)]
+        comparison_trimmed["display_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
+        comparison_trimmed["comparison_label"] = comparison_trimmed["display_label"]
+        occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
 
-            current_delta_html = occ_card_delta(selected_occ, comparison_occ)
-            comparison_delta_html = occ_card_delta(comparison_occ, selected_occ)
-            header_html = (
-                "<div class='sales-bar-container legend-dual'>"
-                "<div class='legend-row'>"
-                f"<span class='legend-entry'><span class='legend-swatch' style='background:#cda643;'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:#cda643;'>{format_occ_percent(selected_occ)}</span><span class='legend-delta'>{current_delta_html}</span></span>"
-                f"<span class='legend-entry'><span class='legend-swatch' style='background:#3f4a78;'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:#3f4a78;'>{format_occ_percent(comparison_occ)}</span><span class='legend-delta'>{comparison_delta_html}</span></span>"
-                "</div>"
-                "</div>"
-            )
-            st.markdown(header_html, unsafe_allow_html=True)
+        current_delta_html = occ_card_delta(selected_occ, comparison_occ)
+        comparison_delta_html = occ_card_delta(comparison_occ, selected_occ)
+        header_html = (
+            "<div class='sales-bar-container legend-dual'>"
+            "<div class='legend-row'>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:#cda643;'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:#cda643;'>{format_occ_percent(selected_occ)}</span><span class='legend-delta'>{current_delta_html}</span></span>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:#3f4a78;'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:#3f4a78;'>{format_occ_percent(comparison_occ)}</span><span class='legend-delta'>{comparison_delta_html}</span></span>"
+            "</div>"
+            "</div>"
+        )
+        st.markdown(header_html, unsafe_allow_html=True)
 
-            occ_chart = (
-                alt.Chart(occ_chart_df)
-                .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-                .encode(
-                    x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
-                    xOffset="series:N",
-                    y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%", labelColor="#aeb3d1")),
-                    color=alt.Color(
-                        "series:N",
-                        scale=alt.Scale(range=["#3f4a78", "#cda643"], domain=["Comparison", "Current"]),
-                        title="",
-                        legend=None,
-                    ),
-                    tooltip=[
-                        alt.Tooltip("series:N", title="Series"),
-                        alt.Tooltip("display_label:N", title="Date"),
-                        alt.Tooltip("value:Q", title="Occupancy %", format=".1%"),
-                    ],
-                )
-                .properties(width=1187, height=240)
+        occ_chart = (
+            alt.Chart(occ_chart_df)
+            .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                xOffset="series:N",
+                y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%", labelColor="#aeb3d1")),
+                color=alt.Color(
+                    "series:N",
+                    scale=alt.Scale(range=["#3f4a78", "#cda643"], domain=["Comparison", "Current"]),
+                    title="",
+                    legend=None,
+                ),
+                tooltip=[
+                    alt.Tooltip("series:N", title="Series"),
+                    alt.Tooltip("display_label:N", title="Date"),
+                    alt.Tooltip("value:Q", title="Occupancy %", format=".1%"),
+                ],
             )
-            st.altair_chart(occ_chart, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            .properties(width=1187, height=240)
+        )
+        st.altair_chart(occ_chart, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
     def occupancy_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
