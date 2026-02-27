@@ -502,6 +502,24 @@ comp_start_date, comp_end_date = compute_comparison_dates(
     oldest_month_start,
 )
 
+if horizon == "Custom":
+    custom_comp_enabled = st.checkbox(
+        "Customize comparison period",
+        value=st.session_state.get("custom_comp_enabled", False),
+    )
+    st.session_state["custom_comp_enabled"] = custom_comp_enabled
+    if custom_comp_enabled:
+        custom_comp_input = st.date_input(
+            "Comparison range",
+            value=(comp_start_date, comp_end_date),
+            min_value=min_date,
+            max_value=max_date,
+            key="custom_comparison_range",
+        )
+        normalized_comp_range = normalize_range(custom_comp_input, (comp_start_date, comp_end_date))
+        comp_start_date = clamp_date(normalized_comp_range[0], min_date, max_date)
+        comp_end_date = clamp_date(normalized_comp_range[1], min_date, max_date)
+
 start_ts = pd.Timestamp(start_date)
 end_ts = pd.Timestamp(end_date)
 comp_start_ts = pd.Timestamp(comp_start_date)
