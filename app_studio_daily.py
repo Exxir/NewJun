@@ -929,7 +929,6 @@ with tab_snap:
         ("Reformer Occ %", reformer_occupancy(filtered_df), reformer_occupancy(comparison_df), "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
-        ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
 
     def render_snap_cards():
