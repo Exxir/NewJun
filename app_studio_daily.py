@@ -1135,6 +1135,8 @@ with tab_occ_percent:
             if ratio is None or pd.isna(ratio):
                 continue
             rows.append({"period": period_value, "value": ratio})
+        if not rows:
+            return pd.DataFrame(columns=pd.Index(["period", "value"]))
         return pd.DataFrame(rows).sort_values("period", ascending=False)
 
     def render_occ_entry_card(title: str, value: Optional[float], comparison_label: str, comparison_value: Optional[float]) -> str:
