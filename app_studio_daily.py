@@ -76,11 +76,10 @@ def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     capacity_ref = sum_or_zero(df, "capacity_ref")
     classes_mat = sum_or_zero(df, "classes")
     classes_ref = sum_or_zero(df, "class_ref")
-    capacity_total = capacity_mat + capacity_ref
-    classes_total = classes_mat + classes_ref
-    if capacity_total in (None, 0) or classes_total in (None, 0) or numer == 0:
+    denom = (capacity_mat * classes_mat) + (capacity_ref * classes_ref)
+    if denom == 0 or numer == 0:
         return None
-    return numer / (capacity_total * classes_total)
+    return numer / denom
 
 
 def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Timestamp:
