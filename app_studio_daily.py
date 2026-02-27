@@ -887,6 +887,12 @@ with tab_occ_percent:
     }
 
     metric_keys = list(metric_definitions.keys())
+    metric_labels = {
+        "occupancy": "Occ %",
+        "classpass": "CP %",
+        "mat_occ": "Mat %",
+        "reformer_occ": "Ref %",
+    }
     default_metric = st.session_state.get("occ_chart_metric", "occupancy")
     if default_metric not in metric_keys:
         default_metric = metric_keys[0]
@@ -897,13 +903,11 @@ with tab_occ_percent:
         index=default_index,
         key="occ_metric_radio",
         label_visibility="collapsed",
+        format_func=lambda key: metric_labels.get(key, key.title()),
+        horizontal=True,
     )
     st.session_state["occ_chart_metric"] = active_metric_key
     active_metric = metric_definitions[active_metric_key]
-    st.markdown(
-        "<style>[data-testid='stRadio'][aria-label='Occ Metric']{display:none !important;}</style>",
-        unsafe_allow_html=True,
-    )
 
     def format_occ_percent(value: Optional[float]) -> str:
         if value is None or pd.isna(value):
