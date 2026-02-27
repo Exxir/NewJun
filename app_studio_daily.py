@@ -731,9 +731,9 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Chart", "Clients", "Forecast", "Occupancy", "Summary", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_forecast, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Forecast", "Data"])
 
-with tab_sales:
+with tab_data:
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -768,7 +768,7 @@ with tab_sales:
         comparison_view = comparison_df.sort_values("date", ascending=False)
         st.dataframe(format_table(comparison_view))
 
-with tab_chart:
+with tab_forecast:
     selected_label = f"{start_date:%m-%d-%y} – {end_date:%m-%d-%y}"
     comparison_label = f"{comp_start_date:%m-%d-%y} – {comp_end_date:%m-%d-%y}"
 
@@ -836,7 +836,7 @@ selected_reformer_occ = reformer_occupancy(filtered_df)
 comparison_reformer_occ = reformer_occupancy(comparison_df)
 
 
-with tab_visits:
+with tab_trips:
     selected_visits = filtered_df.copy()
     comparison_visits = comparison_df.copy()
 
@@ -1395,7 +1395,7 @@ def calculate_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     return combined_occupancy_ratio(df)
 
 
-with tab_occupancy:
+with tab_occ_percent:
     st.subheader("Occupancy Percentage")
     current_occ = calculate_occupancy_ratio(filtered_df)
     comparison_occ = calculate_occupancy_ratio(comparison_df)
