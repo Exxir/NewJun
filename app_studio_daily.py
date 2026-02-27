@@ -938,7 +938,7 @@ with tab_occ_percent:
             })
         return pd.DataFrame(rows)
 
-    occ_chart_cols = st.columns([1.25, 0.35])
+    occ_chart_cols = st.columns([1.25, 0.75])
     with occ_chart_cols[0]:
         st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
         current_occ_chart = build_occ_chart_df(filtered_df, "Current")
