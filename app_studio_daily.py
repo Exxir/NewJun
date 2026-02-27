@@ -897,21 +897,15 @@ with tab_occ_percent:
     if default_metric not in metric_keys:
         default_metric = metric_keys[0]
     default_index = metric_keys.index(default_metric)
-    radio_placeholder = st.empty()
-
-    def render_occ_radio(index: int) -> str:
-        with radio_placeholder.container():
-            return st.radio(
-                "Occ Metric",
-                metric_keys,
-                index=index,
-                key="occ_metric_radio",
-                label_visibility="collapsed",
-                format_func=lambda key: metric_labels.get(key, key.title()),
-                horizontal=True,
-            )
-
-    active_metric_key = render_occ_radio(default_index)
+    active_metric_key = st.radio(
+        "Occ Metric",
+        metric_keys,
+        index=default_index,
+        key="occ_metric_radio",
+        label_visibility="collapsed",
+        format_func=lambda key: metric_labels.get(key, key.title()),
+        horizontal=True,
+    )
     st.session_state["occ_chart_metric"] = active_metric_key
     active_metric = metric_definitions[active_metric_key]
 
@@ -1067,10 +1061,6 @@ with tab_occ_percent:
         )
         st.altair_chart(occ_chart, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
-
-    active_metric_key = render_occ_radio(metric_keys.index(active_metric_key))
-    st.session_state["occ_chart_metric"] = active_metric_key
-    active_metric = metric_definitions[active_metric_key]
 
 
     def occupancy_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
