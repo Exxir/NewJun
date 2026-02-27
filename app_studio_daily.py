@@ -886,23 +886,24 @@ with tab_occ_percent:
         },
     }
 
-    if "occ_chart_metric" not in st.session_state:
-        st.session_state["occ_chart_metric"] = "occupancy"
-
-    metric_selector_value = st.text_input(
-        "occ metric selector",
-        st.session_state["occ_chart_metric"],
-        key="occ_metric_selector",
+    metric_keys = list(metric_definitions.keys())
+    default_metric = st.session_state.get("occ_chart_metric", "occupancy")
+    if default_metric not in metric_keys:
+        default_metric = metric_keys[0]
+    default_index = metric_keys.index(default_metric)
+    active_metric_key = st.radio(
+        "Occ Metric",
+        metric_keys,
+        index=default_index,
+        key="occ_metric_radio",
         label_visibility="collapsed",
     )
+    st.session_state["occ_chart_metric"] = active_metric_key
+    active_metric = metric_definitions[active_metric_key]
     st.markdown(
-        "<style>input[aria-label='occ metric selector']{display:none !important;}</style>",
+        "<style>[data-testid='stRadio'][aria-label='Occ Metric']{display:none !important;}</style>",
         unsafe_allow_html=True,
     )
-    if metric_selector_value:
-        st.session_state["occ_chart_metric"] = metric_selector_value
-    active_metric_key = st.session_state.get("occ_chart_metric", "occupancy")
-    active_metric = metric_definitions.get(active_metric_key, metric_definitions["occupancy"])
 
     def format_occ_percent(value: Optional[float]) -> str:
         if value is None or pd.isna(value):
@@ -965,14 +966,19 @@ with tab_occ_percent:
         <script>
         const doc = window.parent.document;
         const cards = doc.querySelectorAll('.occ-card[data-occ-target]');
-        const input = doc.querySelector('input[aria-label="occ metric selector"]');
+        const radioRoot = doc.querySelector('[data-testid="stRadio"][aria-label="Occ Metric"]');
         cards.forEach(card => {
             if(card.dataset.bound === 'true') return;
             card.dataset.bound = 'true';
             card.addEventListener('click', () => {
-                if(!input) return;
-                input.value = card.dataset.occTarget;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
+                if(!radioRoot) return;
+                const target = card.dataset.occTarget;
+                const inputs = radioRoot.querySelectorAll('input[type="radio"]');
+                inputs.forEach(input => {
+                    if(input.value === target) {
+                        input.click();
+                    }
+                });
             });
         });
         </script>
