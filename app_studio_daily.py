@@ -269,8 +269,6 @@ def load_data():
         "cp_visits_mat": "cp_visits",
         "ft_mat": "first_time",
         "cp_visit_ref": "cp_visits_ref",
-        "capacity": "capacity_mat",
-        "capacity_ref": "capacity_ref",
     }
     df = df.rename(columns=rename_map)
     numeric_columns = (
@@ -279,7 +277,7 @@ def load_data():
         "total_visits",
         "mt_visits_ref",
         "cp_visits",
-        "cp_visit_ref",
+        "cp_visits_ref",
         "first_time",
         "ft_ref",
         "cp_sales_mat",
@@ -287,12 +285,19 @@ def load_data():
         "mt_sales_mat",
         "mt_sales_ref",
         "mt_sales_total",
-        "capacity_mat",
+        "capacity",
         "capacity_ref",
     )
     for column in numeric_columns:
         if column in df.columns:
             df[column] = pd.to_numeric(df[column], errors="coerce")
+
+    if "capacity" in df.columns:
+        df["capacity_mat"] = df["capacity"].astype(float)
+    else:
+        df["capacity_mat"] = pd.NA
+    if "capacity_ref" not in df.columns:
+        df["capacity_ref"] = pd.NA
 
     def safe_sales_series(column: str) -> pd.Series:
         if column in df.columns:
