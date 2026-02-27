@@ -90,6 +90,46 @@ def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     return numer / denom
 
 
+def ratio_from_columns(df: pd.DataFrame, numer: str, denom: str) -> Optional[float]:
+    num = safe_sum(df, numer)
+    den = safe_sum(df, denom)
+    if num is None or den in (None, 0):
+        return None
+    return num / den
+
+
+def _series_or_zero(df: pd.DataFrame, column: str) -> pd.Series:
+    if column in df.columns:
+        return cast(pd.Series, df[column]).fillna(0)
+    return pd.Series(0.0, index=df.index)
+
+
+def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
+    numer = safe_sum(df, "total_visits")
+    if numer in (None, 0):
+        return None
+    capacity = _series_or_zero(df, "capacity_mat")
+    classes = _series_or_zero(df, "classes")
+    slots = float((capacity * classes).sum())
+    if slots == 0:
+        return None
+    return numer / slots
+
+
+def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
+    mt_ref = safe_sum(df, "mt_visits_ref") or 0.0
+    cp_ref = safe_sum(df, "cp_visits_ref") or 0.0
+    numer = mt_ref + cp_ref
+    if numer == 0:
+        return None
+    capacity = _series_or_zero(df, "capacity_ref")
+    classes = _series_or_zero(df, "class_ref")
+    slots = float((capacity * classes).sum())
+    if slots == 0:
+        return None
+    return numer / slots
+
+
 def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Timestamp:
     if len(index) == 0:
         return candidate
@@ -666,7 +706,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_occ_percent, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -761,6 +801,16 @@ with tab_chart:
         )
         st.altair_chart(chart, use_container_width=True)
 
+selected_occ = combined_occupancy_ratio(filtered_df)
+comparison_occ = combined_occupancy_ratio(comparison_df)
+selected_cp = ratio_from_columns(filtered_df, "cp_visits", "total_visits")
+comparison_cp = ratio_from_columns(comparison_df, "cp_visits", "total_visits")
+selected_mat_occ = mat_occupancy(filtered_df)
+comparison_mat_occ = mat_occupancy(comparison_df)
+selected_reformer_occ = reformer_occupancy(filtered_df)
+comparison_reformer_occ = reformer_occupancy(comparison_df)
+
+
 with tab_visits:
     selected_visits = filtered_df.copy()
     comparison_visits = comparison_df.copy()
@@ -813,6 +863,107 @@ with tab_visits:
     else:
         st.dataframe(format_table(comparison_visits))
 
+with tab_occ_percent:
+    def format_occ_percent(value: Optional[float]) -> str:
+        if value is None or pd.isna(value):
+            return "—"
+        return f"{value * 100:.1f}%"
+
+    occ_metrics = [
+        ("Occupancy %", selected_occ, comparison_occ),
+        ("Classpass %", selected_cp, comparison_cp),
+        ("Mat Occ %", selected_mat_occ, comparison_mat_occ),
+        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ),
+    ]
+
+    occ_cols = st.columns(4)
+    for col, (label, current_value, comparison_value) in zip(occ_cols, occ_metrics):
+        delta_display = None
+        if current_value is not None and comparison_value not in (None, 0):
+            delta_pct = ((current_value - comparison_value) / comparison_value) * 100
+            delta_display = f"{delta_pct:+.1f}%"
+        col.metric(label, format_occ_percent(current_value), delta_display)
+
+    def build_occ_chart_df(df: pd.DataFrame, label: str) -> pd.DataFrame:
+        if df.empty:
+            return pd.DataFrame(columns=pd.Index(["date", "value", "series"]))
+        rows = []
+        for date_value, group in df.groupby("date"):
+            occ_value = combined_occupancy_ratio(group)
+            if occ_value is None or pd.isna(occ_value):
+                continue
+            rows.append({
+                "date": date_value,
+                "value": occ_value,
+                "series": label,
+            })
+        return pd.DataFrame(rows)
+
+    current_occ_chart = build_occ_chart_df(filtered_df, "Selected")
+    comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
+    occ_chart_df = pd.concat([current_occ_chart, comparison_occ_chart], ignore_index=True)
+
+    if occ_chart_df.empty:
+        st.info("No occupancy data to chart.")
+    else:
+        occ_chart = (
+            alt.Chart(occ_chart_df)
+            .mark_line(point=True)
+            .encode(
+                x="date:T",
+                y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%")),
+                color="series:N",
+                tooltip=["series", "date", alt.Tooltip("value:Q", title="Occupancy %", format=".1%")],
+            )
+        )
+        st.altair_chart(occ_chart, use_container_width=True)
+
+    def build_occ_table(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return pd.DataFrame(columns=pd.Index([
+                "date",
+                "Occupancy %",
+                "Classpass %",
+                "Mat Occ %",
+                "Reformer Occ %",
+            ]))
+        records = []
+        for date_value, group in df.groupby("date"):
+            records.append({
+                "date": date_value,
+                "Occupancy %": combined_occupancy_ratio(group),
+                "Classpass %": ratio_from_columns(group, "cp_visits", "total_visits"),
+                "Mat Occ %": mat_occupancy(group),
+                "Reformer Occ %": reformer_occupancy(group),
+            })
+        return pd.DataFrame(records).sort_values("date")
+
+    def format_occ_table(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return df
+        view = df.copy()
+        if "date" in view.columns:
+            view["date"] = pd.to_datetime(view["date"]).dt.strftime("%m-%d-%y")
+        for column in ["Occupancy %", "Classpass %", "Mat Occ %", "Reformer Occ %"]:
+            view[column] = view[column].apply(format_occ_percent)
+        return view
+
+    selected_occ_table = build_occ_table(filtered_df)
+    comparison_occ_table = build_occ_table(comparison_df)
+
+    st.subheader("Occupancy (Selected Range)")
+    if selected_occ_table.empty:
+        st.info("No occupancy data available for the selected range.")
+    else:
+        st.dataframe(format_occ_table(selected_occ_table))
+
+    st.subheader("Occupancy (Comparison Range)")
+    if comparison_occ_table.empty:
+        st.info("No occupancy data available for the comparison range.")
+    else:
+        st.dataframe(format_occ_table(comparison_occ_table))
+
+
 with tab_snap:
     st.markdown(
         """
@@ -850,48 +1001,8 @@ with tab_snap:
             return None
         return (current / comparison) - 1
 
-    def occ_ratio(df: pd.DataFrame) -> Optional[float]:
-        return combined_occupancy_ratio(df)
-
-    def ratio_from_columns(df: pd.DataFrame, numer: str, denom: str) -> Optional[float]:
-        num = safe_sum(df, numer)
-        den = safe_sum(df, denom)
-        if num is None or den in (None, 0):
-            return None
-        return num / den
-
-    def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
-        numer = safe_sum(df, "total_visits")
-        if numer in (None, 0):
-            return None
-        capacity = cast(pd.Series, df["capacity_mat"]) if "capacity_mat" in df.columns else pd.Series(0.0, index=df.index)
-        classes = cast(pd.Series, df["classes"]) if "classes" in df.columns else pd.Series(0.0, index=df.index)
-        slots = float((capacity.fillna(0) * classes.fillna(0)).sum())
-        if slots == 0:
-            return None
-        return numer / slots
-
-    def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
-        mt_ref = safe_sum(df, "mt_visits_ref") or 0.0
-        cp_ref = safe_sum(df, "cp_visits_ref") or 0.0
-        numer = mt_ref + cp_ref
-        if numer == 0:
-            return None
-        capacity = cast(pd.Series, df["capacity_ref"]) if "capacity_ref" in df.columns else pd.Series(0.0, index=df.index)
-        classes = cast(pd.Series, df["class_ref"]) if "class_ref" in df.columns else pd.Series(0.0, index=df.index)
-        slots = float((capacity.fillna(0) * classes.fillna(0)).sum())
-        if slots == 0:
-            return None
-        return numer / slots
-
     selected_visits_total = safe_sum(filtered_df, "total_visits") or 0.0
     comparison_visits_total = safe_sum(comparison_df, "total_visits") or 0.0
-    selected_occ = occ_ratio(filtered_df)
-    comparison_occ = occ_ratio(comparison_df)
-    selected_mat = ratio_from_columns(filtered_df, "mt_visits", "total_visits")
-    comparison_mat = ratio_from_columns(comparison_df, "mt_visits", "total_visits")
-    selected_cp = ratio_from_columns(filtered_df, "cp_visits", "total_visits")
-    comparison_cp = ratio_from_columns(comparison_df, "cp_visits", "total_visits")
     selected_per_visit = (range_sales_display / selected_visits_total) if selected_visits_total else None
     comparison_per_visit = (comparison_sales / comparison_visits_total) if comparison_visits_total else None
     selected_ft = safe_sum(filtered_df, "first_time")
@@ -925,8 +1036,8 @@ with tab_snap:
         ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
         ("Occupancy %", selected_occ, comparison_occ, "percent", "Occupancy"),
         ("Classpass %", selected_cp, comparison_cp, "percent", None),
-        ("Mat Occ %", mat_occupancy(filtered_df), mat_occupancy(comparison_df), "percent", None),
-        ("Reformer Occ %", reformer_occupancy(filtered_df), reformer_occupancy(comparison_df), "percent", None),
+        ("Mat Occ %", selected_mat_occ, comparison_mat_occ, "percent", None),
+        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
     ]
