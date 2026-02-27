@@ -1231,15 +1231,23 @@ def render_summary_content():
         weekly_html_parts = []
         for row in weekly_rows.to_dict("records"):
             week_start = cast(pd.Timestamp, pd.Timestamp(row["week_start"]))
+            week_end = week_start + pd.Timedelta(days=6)
             week_value = float(row["netsales"])
-            prev_week = cast(pd.Timestamp, week_start - pd.Timedelta(weeks=52))
-            prev_value = weekly_totals.get(prev_week)
+            prev_year_week_start = align_date_to_weekday(week_start.date(), weekday_index_map, history_index)
+            if prev_year_week_start is not None:
+                prev_week_ts = pd.Timestamp(prev_year_week_start)
+                prev_week_val = weekly_totals.get(prev_week_ts)
+                weekly_label = prev_year_week_start.strftime("%m/%d/%y")
+            else:
+                prev_week_ts = None
+                prev_week_val = None
+                weekly_label = "—"
             weekly_html_parts.append(
                 render_fw_row(
-                    week_start.strftime("%m/%d/%y"),
+                    f"{week_start:%m/%d} - {week_end:%m/%d/%y}",
                     format_currency(week_value),
-                    prev_week.strftime("%m/%d/%y"),
-                    ratio_badge(yoy_ratio(week_value, prev_value)),
+                    weekly_label,
+                    ratio_badge(yoy_ratio(week_value, prev_week_val)),
                 )
             )
         st.markdown("".join(weekly_html_parts), unsafe_allow_html=True)
@@ -1250,14 +1258,21 @@ def render_summary_content():
         for row in daily_rows.to_dict("records"):
             day = cast(pd.Timestamp, pd.Timestamp(row["date"]))
             day_value = float(row["netsales"])
-            prev_day = cast(pd.Timestamp, day - pd.DateOffset(years=1))
-            prev_day_value = daily_totals.get(prev_day)
+            aligned = align_date_to_weekday(day.date(), weekday_index_map, history_index)
+            if aligned is not None:
+                aligned_ts = pd.Timestamp(aligned)
+                aligned_value = daily_totals.get(aligned_ts)
+                aligned_label = aligned.strftime("%m/%d/%y")
+            else:
+                aligned_ts = None
+                aligned_value = None
+                aligned_label = "—"
             daily_html_parts.append(
                 render_fw_row(
                     day.strftime("%m/%d/%y"),
                     format_currency(day_value),
-                    prev_day.strftime("%m/%d/%y"),
-                    ratio_badge(yoy_ratio(day_value, prev_day_value)),
+                    aligned_label,
+                    ratio_badge(yoy_ratio(day_value, aligned_value)),
                 )
             )
         st.markdown("".join(daily_html_parts), unsafe_allow_html=True)
