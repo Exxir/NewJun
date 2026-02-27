@@ -659,7 +659,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Trips", "Current", "Chart", "Visits", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_new_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "New Snap", "Sales", "Trips", "Current", "Chart", "Visits", "Forecast", "Occupancy", "Summary"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -919,31 +919,39 @@ with tab_snap:
         ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
 
-    snap_html = "<div class='snap-grid'>" + "".join(snap_card_html(*card) for card in cards) + "</div>"
-    st.markdown(snap_html, unsafe_allow_html=True)
+    def render_snap_cards():
+        snap_html = "<div class='snap-grid'>" + "".join(snap_card_html(*card) for card in cards) + "</div>"
+        st.markdown(snap_html, unsafe_allow_html=True)
 
-    components.html(
-        """
-        <script>
-        const cards = window.parent.document.querySelectorAll('div.snap-card[data-tab-target]');
-        cards.forEach(card => {
-            if(card.dataset.bound === 'true') return;
-            card.dataset.bound = 'true';
-            card.addEventListener('click', () => {
-                const target = card.getAttribute('data-tab-target');
-                if(!target) return;
-                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                tabs.forEach(btn => {
-                    if(btn.innerText.trim() === target) {
-                        btn.click();
-                    }
+        components.html(
+            """
+            <script>
+            const cards = window.parent.document.querySelectorAll('div.snap-card[data-tab-target]');
+            cards.forEach(card => {
+                if(card.dataset.bound === 'true') return;
+                card.dataset.bound = 'true';
+                card.addEventListener('click', () => {
+                    const target = card.getAttribute('data-tab-target');
+                    if(!target) return;
+                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                    tabs.forEach(btn => {
+                        if(btn.innerText.trim() === target) {
+                            btn.click();
+                        }
+                    });
                 });
             });
-        });
-        </script>
-        """,
-        height=0,
-    )
+            </script>
+            """,
+            height=0,
+        )
+
+    render_snap_cards()
+
+
+with tab_new_snap:
+    render_snap_cards()
+
 
 with tab_forecast:
     if history_series.empty:
