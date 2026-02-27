@@ -910,12 +910,12 @@ with tab_snap:
     cards = [
         ("Sales", range_sales_display, comparison_sales, "currency", "Sales"),
         ("Occupancy %", selected_occ, comparison_occ, "percent", "Occupancy"),
-        ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
         ("Classpass %", selected_cp, comparison_cp, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
         ("Mat Occ %", mat_occupancy(filtered_df), mat_occupancy(comparison_df), "percent", None),
         ("Reformer Occ %", reformer_occupancy(filtered_df), reformer_occupancy(comparison_df), "percent", None),
+        ("Visits", selected_visits_total, comparison_visits_total, "number", None),
         ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
 
