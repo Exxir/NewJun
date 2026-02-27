@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 
 import altair as alt
@@ -94,6 +94,18 @@ def build_chart_data(df: pd.DataFrame, series_label: str, range_label: str, colu
     grouped["weekday"] = grouped["date"].dt.strftime("%a")
     grouped["range_label"] = range_label
     return grouped.rename(columns={column: "netsales"})
+
+
+def build_weekday_map(index: pd.DatetimeIndex) -> dict[int, pd.DatetimeIndex]:
+    lookup: dict[int, pd.DatetimeIndex] = {}
+    if len(index) == 0:
+        return lookup
+    weekday_series = pd.Series(index, index=index).dt.weekday
+    for weekday in range(7):
+        mask = weekday_series == weekday
+        if mask.any():
+            lookup[weekday] = weekday_series.index[mask]
+    return lookup
 
 
 def align_date_to_weekday(target_date: date, weekday_index_map: dict[int, pd.DatetimeIndex], history_index: pd.DatetimeIndex) -> date:
@@ -1052,6 +1064,26 @@ def format_percent(value: Optional[float], decimals: int = 0) -> str:
     return f"{value * 100:.{decimals}f}%"
 
 
+def format_timestamp_label(ts: Optional[pd.Timestamp], fmt: str = "%b %d, %Y") -> str:
+    if ts is None or cast(bool, pd.isna(ts)):
+        return "—"
+    ts_clean = cast(pd.Timestamp, ts)
+    dt_value = date(int(ts_clean.year), int(ts_clean.month), int(ts_clean.day))
+    return dt_value.strftime(fmt)
+
+
+def format_week_range(ts: Optional[pd.Timestamp]) -> str:
+    if ts is None or cast(bool, pd.isna(ts)):
+        return "—"
+    ts_clean = cast(pd.Timestamp, ts)
+    end_ts = ts_clean + pd.Timedelta(days=6)
+    start_dt = date(int(ts_clean.year), int(ts_clean.month), int(ts_clean.day))
+    end_dt = date(int(end_ts.year), int(end_ts.month), int(end_ts.day))
+    start_str = start_dt.strftime("%b %d")
+    end_str = end_dt.strftime("%b %d, %Y")
+    return f"{start_str} - {end_str}"
+
+
 def yoy_ratio(current: Optional[float], previous: Optional[float]) -> Optional[float]:
     if current is None or previous in (None, 0):
         return None
@@ -1522,26 +1554,34 @@ with tab_sales_money:
     comparison_summary_df["week_start"] = comparison_summary_df["date"].dt.to_period("W-SUN").dt.start_time
     comparison_daily_totals = comparison_summary_df.groupby("date")["netsales"].sum().sort_index(ascending=False)
     comparison_weekly_totals = comparison_summary_df.groupby("week_start")["netsales"].sum().sort_index(ascending=False)
+    comparison_daily_index = pd.DatetimeIndex(comparison_daily_totals.index)
+    comparison_daily_map = build_weekday_map(cast(pd.DatetimeIndex, comparison_daily_index))
+    comparison_weekly_index = pd.DatetimeIndex(comparison_weekly_totals.index)
+    comparison_weekly_map = build_weekday_map(cast(pd.DatetimeIndex, comparison_weekly_index))
 
     with sales_cols[0]:
         st.markdown("<div class='fw-section-title'>Daily Sales</div>", unsafe_allow_html=True)
         daily_totals = summary_df.groupby("date")["netsales"].sum().sort_index(ascending=False)
         daily_rows = daily_totals.head(6).reset_index()
         daily_html_parts = []
-        comparison_daily_rows = comparison_daily_totals.head(len(daily_rows)).reset_index()
-        for idx, row in enumerate(daily_rows.to_dict("records")):
+        for row in daily_rows.to_dict("records"):
             day = cast(pd.Timestamp, pd.Timestamp(row["date"]))
             day_value = float(row["netsales"])
             comp_label = "—"
             comp_value: Optional[float] = None
-            if idx < len(comparison_daily_rows):
-                comp_row = comparison_daily_rows.iloc[idx]
-                comp_day = cast(pd.Timestamp, pd.Timestamp(comp_row["date"]))
-                comp_value = float(comp_row["netsales"])
-                comp_label = comp_day.strftime("%b %d, %Y")
+            if len(comparison_daily_index) > 0:
+                candidate = cast(date, (day - pd.Timedelta(weeks=52)).date())
+                aligned_date = align_date_to_weekday(candidate, comparison_daily_map, comparison_daily_index)
+                comp_ts = pd.Timestamp(aligned_date)
+                if not bool(pd.isna(comp_ts)):
+                    comp_ts_clean = cast(pd.Timestamp, comp_ts)
+                    comp_raw = comparison_daily_totals.get(comp_ts)
+                    if comp_raw is not None and not pd.isna(comp_raw):
+                        comp_value = float(comp_raw)
+                        comp_label = format_timestamp_label(comp_ts_clean)
             daily_html_parts.append(
                 render_sales_entry_card(
-                    day.strftime("%b %d, %Y"),
+                    format_timestamp_label(day),
                     day_value,
                     comp_label,
                     comp_value,
@@ -1554,22 +1594,25 @@ with tab_sales_money:
         weekly_totals = summary_df.groupby("week_start")["netsales"].sum().sort_index(ascending=False)
         weekly_rows = weekly_totals.head(6).reset_index()
         weekly_html_parts = []
-        comparison_weekly_rows = comparison_weekly_totals.head(len(weekly_rows)).reset_index()
-        for idx, row in enumerate(weekly_rows.to_dict("records")):
+        for row in weekly_rows.to_dict("records"):
             week_start = cast(pd.Timestamp, pd.Timestamp(row["week_start"]))
             week_end = week_start + pd.Timedelta(days=6)
             week_value = float(row["netsales"])
             comp_label = "—"
             comp_value: Optional[float] = None
-            if idx < len(comparison_weekly_rows):
-                comp_row = comparison_weekly_rows.iloc[idx]
-                comp_week = cast(pd.Timestamp, pd.Timestamp(comp_row["week_start"]))
-                comp_week_end = comp_week + pd.Timedelta(days=6)
-                comp_value = float(comp_row["netsales"])
-                comp_label = f"{comp_week:%b %d} - {comp_week_end:%b %d, %Y}"
+            if len(comparison_weekly_index) > 0:
+                candidate = cast(date, (week_start - pd.Timedelta(weeks=52)).date())
+                aligned_week_start = align_date_to_weekday(candidate, comparison_weekly_map, comparison_weekly_index)
+                aligned_week_ts = pd.Timestamp(aligned_week_start)
+                if not bool(pd.isna(aligned_week_ts)):
+                    aligned_week_ts_clean = cast(pd.Timestamp, aligned_week_ts)
+                    comp_raw = comparison_weekly_totals.get(aligned_week_ts)
+                    if comp_raw is not None and not pd.isna(comp_raw):
+                        comp_value = float(comp_raw)
+                        comp_label = format_week_range(aligned_week_ts_clean)
             weekly_html_parts.append(
                 render_sales_entry_card(
-                    f"{week_start:%b %d} - {week_end:%b %d, %Y}",
+                    format_week_range(week_start),
                     week_value,
                     comp_label,
                     comp_value,
