@@ -908,6 +908,10 @@ with tab_occ_percent:
     )
     st.session_state["occ_chart_metric"] = active_metric_key
     active_metric = metric_definitions[active_metric_key]
+    st.markdown(
+        "<style>[data-testid='stRadio'][aria-label='Occ Metric']{display:none !important;}.occ-toggle-links{display:flex;gap:0.6rem;align-items:center;margin-top:0.4rem;margin-bottom:0.6rem;font-size:0.85rem;color:#aeb3d1;}.occ-toggle-link{background:#0b1124;border:1px solid #2a3154;color:#f5c746;padding:0.2rem 0.75rem;border-radius:999px;font-size:0.8rem;cursor:pointer;transition:background 0.15s ease,color 0.15s ease;border-color:#2a3154;}.occ-toggle-link[data-active='true']{background:#f5c746;color:#0b1124;border-color:#f5c746;font-weight:600;} .occ-toggle-link:hover{opacity:0.85;}</style>",
+        unsafe_allow_html=True,
+    )
 
     def format_occ_percent(value: Optional[float]) -> str:
         if value is None or pd.isna(value):
@@ -965,30 +969,13 @@ with tab_occ_percent:
             unsafe_allow_html=True,
         )
 
-    components.html(
-        """
-        <script>
-        const doc = window.parent.document;
-        const cards = doc.querySelectorAll('.occ-card[data-occ-target]');
-        const radioRoot = doc.querySelector('[data-testid="stRadio"][aria-label="Occ Metric"]');
-        cards.forEach(card => {
-            if(card.dataset.bound === 'true') return;
-            card.dataset.bound = 'true';
-            card.addEventListener('click', () => {
-                if(!radioRoot) return;
-                const target = card.dataset.occTarget;
-                const inputs = radioRoot.querySelectorAll('input[type="radio"]');
-                inputs.forEach(input => {
-                    if(input.value === target) {
-                        input.click();
-                    }
-                });
-            });
-        });
-        </script>
-        """,
-        height=0,
-    )
+    def render_toggle_links(active_key: str) -> None:
+        link_html = "".join(
+            f"<button type='button' class='occ-toggle-link' data-occ-target='{key}' data-active={'true' if key == active_key else 'false'}>{metric_labels.get(key, key.title())}</button>"
+            for key in metric_keys
+        )
+        st.markdown(f"<div class='occ-toggle-links'>{link_html}</div>", unsafe_allow_html=True)
+
 
     def build_occ_chart_df(df: pd.DataFrame, label: str, compute_fn: Callable[[pd.DataFrame], Optional[float]]) -> pd.DataFrame:
         if df.empty:
@@ -1061,6 +1048,40 @@ with tab_occ_percent:
         )
         st.altair_chart(occ_chart, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
+
+    render_toggle_links(active_metric_key)
+
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        const cards = doc.querySelectorAll('.occ-card[data-occ-target]');
+        const radioRoot = doc.querySelector('[data-testid="stRadio"][aria-label="Occ Metric"]');
+        const links = doc.querySelectorAll('.occ-toggle-link[data-occ-target]');
+        const triggerSelection = (target) => {
+            if(!radioRoot) return;
+            const inputs = radioRoot.querySelectorAll('input[type="radio"]');
+            inputs.forEach(input => {
+                if(input.value === target) {
+                    input.click();
+                }
+            });
+        };
+        const bindElement = (el) => {
+            if(el.dataset.bound === 'true') return;
+            el.dataset.bound = 'true';
+            el.addEventListener('click', () => {
+                const target = el.dataset.occTarget;
+                if(!target) return;
+                triggerSelection(target);
+            });
+        };
+        cards.forEach(bindElement);
+        links.forEach(bindElement);
+        </script>
+        """,
+        height=0,
+    )
 
 
     def occupancy_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
