@@ -1279,9 +1279,9 @@ with tab_snap:
         ("Sales", range_sales_display, comparison_sales, "currency", "Sales"),
         ("Visits", selected_visits_total, comparison_visits_total, "number", "Visits"),
         ("Occupancy %", selected_occ, comparison_occ, "percent", "Occ %"),
-        ("Classpass %", selected_cp, comparison_cp, "percent", None),
-        ("Mat Occ %", selected_mat_occ, comparison_mat_occ, "percent", None),
-        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ, "percent", None),
+        ("Classpass %", selected_cp, comparison_cp, "percent", "Occ %"),
+        ("Mat Occ %", selected_mat_occ, comparison_mat_occ, "percent", "Occ %"),
+        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ, "percent", "Occ %"),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
     ]
