@@ -243,7 +243,9 @@ def load_data():
             "cp_sales_ref",
             "mt_sales_mat",
             "mt_sales_ref",
-            "mt_sales_total"
+            "mt_sales_total",
+            "capacity",
+            "capacity_ref"
         FROM public.studio_daily_metrics
     """)
     with engine.connect() as conn:
@@ -255,6 +257,8 @@ def load_data():
         "cp_visits_mat": "cp_visits",
         "ft_mat": "first_time",
         "cp_visit_ref": "cp_visits_ref",
+        "capacity": "capacity_mat",
+        "capacity_ref": "capacity_ref",
     }
     df = df.rename(columns=rename_map)
     numeric_columns = (
@@ -271,6 +275,8 @@ def load_data():
         "mt_sales_mat",
         "mt_sales_ref",
         "mt_sales_total",
+        "capacity_mat",
+        "capacity_ref",
     )
     for column in numeric_columns:
         if column in df.columns:
@@ -812,6 +818,24 @@ with tab_snap:
             return None
         return num / den
 
+    def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
+        numer = safe_sum(df, "total_visits")
+        denom = safe_sum(df, "capacity_mat")
+        classes_sum = safe_sum(df, "classes")
+        if numer is None or denom in (None, 0) or classes_sum in (None, 0):
+            return None
+        return numer / (denom * classes_sum)
+
+    def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
+        mt_ref = safe_sum(df, "mt_visits_ref")
+        cp_ref = safe_sum(df, "cp_visits_ref")
+        numer = (mt_ref or 0) + (cp_ref or 0)
+        capacity_ref = safe_sum(df, "capacity_ref")
+        classes_ref = safe_sum(df, "class_ref")
+        if capacity_ref in (None, 0) or classes_ref in (None, 0) or numer == 0:
+            return None
+        return numer / (capacity_ref * classes_ref)
+
     selected_visits_total = safe_sum(filtered_df, "total_visits") or 0.0
     comparison_visits_total = safe_sum(comparison_df, "total_visits") or 0.0
     selected_occ = occ_ratio(filtered_df)
@@ -854,6 +878,8 @@ with tab_snap:
         ("Classpass %", selected_cp, comparison_cp, "percent", None),
         ("$ / Visit", selected_per_visit, comparison_per_visit, "number2", None),
         ("FT Visit", selected_ft, comparison_ft, "number", None),
+        ("Mat Occ %", mat_occupancy(filtered_df), mat_occupancy(comparison_df), "percent", None),
+        ("Reformer Occ %", reformer_occupancy(filtered_df), reformer_occupancy(comparison_df), "percent", None),
         ("Visits", selected_visits_total, comparison_visits_total, "number", None),
         ("Mat %", selected_mat, comparison_mat, "percent", None),
     ]
