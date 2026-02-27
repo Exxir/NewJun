@@ -1297,6 +1297,12 @@ def render_summary_content():
             render_fw_card(label, value, subtitle, ratio) for label, value, subtitle, ratio in month_cards
         )
         st.markdown(month_cards_html, unsafe_allow_html=True)
+        extra_cards = cards[5:7]
+        if extra_cards:
+            extra_html = "".join(
+                render_fw_card(label, value, subtitle, ratio) for label, value, subtitle, ratio in extra_cards
+            )
+            st.markdown(extra_html, unsafe_allow_html=True)
 
     with col_week:
         st.markdown("<div class='fw-section-title'>Weekly Sales</div>", unsafe_allow_html=True)
