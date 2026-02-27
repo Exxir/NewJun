@@ -997,19 +997,29 @@ with tab_occ_percent:
     st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
     current_occ_chart = build_occ_chart_df(filtered_df, "Current", metric_compute)
     comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison", metric_compute)
-    if current_occ_chart.empty:
+    if current_occ_chart.empty and comparison_occ_chart.empty:
         st.info("Not enough data to display the occupancy breakdown chart.")
     else:
-        current_occ_chart = current_occ_chart.sort_values("date")
-        comparison_occ_chart = comparison_occ_chart.sort_values("date")
-        current_occ_chart["x_axis"] = current_occ_chart["date"].dt.strftime("%b %d")
-        current_occ_chart["display_label"] = current_occ_chart["date"].dt.strftime("%b %d, %Y")
-        current_occ_chart["comparison_label"] = current_occ_chart["display_label"]
-        comparison_trimmed = comparison_occ_chart.head(len(current_occ_chart)).copy()
-        comparison_trimmed["x_axis"] = current_occ_chart["x_axis"].values[:len(comparison_trimmed)]
-        comparison_trimmed["display_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
-        comparison_trimmed["comparison_label"] = comparison_trimmed["display_label"]
-        occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
+        def enrich_chart_df(frame: pd.DataFrame) -> pd.DataFrame:
+            if frame.empty:
+                return frame
+            enriched = frame.sort_values("date").copy()
+            enriched["x_axis"] = enriched["date"].dt.strftime("%b %d")
+            enriched["display_label"] = enriched["date"].dt.strftime("%b %d, %Y")
+            enriched["comparison_label"] = enriched["display_label"]
+            return enriched
+
+        current_occ_chart = enrich_chart_df(current_occ_chart)
+        comparison_occ_chart = enrich_chart_df(comparison_occ_chart)
+
+        if current_occ_chart.empty:
+            occ_chart_df = comparison_occ_chart
+        elif comparison_occ_chart.empty:
+            occ_chart_df = current_occ_chart
+        else:
+            comparison_trimmed = comparison_occ_chart.head(len(current_occ_chart)).copy()
+            comparison_trimmed["x_axis"] = current_occ_chart["x_axis"].values[:len(comparison_trimmed)]
+            occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
 
         metric_value_current = active_metric["compute"](filtered_df)
         metric_value_comparison = active_metric["compute"](comparison_df)
