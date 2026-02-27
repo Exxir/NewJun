@@ -706,7 +706,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_sales, tab_chart, tab_visits, tab_occ_percent, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
+tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_sales, tab_chart, tab_visits, tab_forecast, tab_occupancy, tab_fw_dashboard = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Current", "Chart", "Clients", "Forecast", "Occupancy", "Summary"])
 
 with tab_sales:
     col1, col2 = st.columns([1, 1])
@@ -864,25 +864,64 @@ with tab_visits:
         st.dataframe(format_table(comparison_visits))
 
 with tab_occ_percent:
+    range_label = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
+    comparison_label = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
+
     def format_occ_percent(value: Optional[float]) -> str:
         if value is None or pd.isna(value):
             return "—"
         return f"{value * 100:.1f}%"
 
-    occ_metrics = [
-        ("Occupancy %", selected_occ, comparison_occ),
-        ("Classpass %", selected_cp, comparison_cp),
-        ("Mat Occ %", selected_mat_occ, comparison_mat_occ),
-        ("Reformer Occ %", selected_reformer_occ, comparison_reformer_occ),
-    ]
+    def occ_card_delta(current: Optional[float], comparison: Optional[float]) -> str:
+        if current in (None, 0) or comparison in (None, 0):
+            return "—"
+        delta_pct = ((current - comparison) / comparison) * 100
+        color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
+        return f"<span style='color:{color};font-weight:600;'>{delta_pct:+.1f}%</span>"
 
-    occ_cols = st.columns(4)
-    for col, (label, current_value, comparison_value) in zip(occ_cols, occ_metrics):
-        delta_display = None
-        if current_value is not None and comparison_value not in (None, 0):
-            delta_pct = ((current_value - comparison_value) / comparison_value) * 100
-            delta_display = f"{delta_pct:+.1f}%"
-        col.metric(label, format_occ_percent(current_value), delta_display)
+    def render_occ_card(value: Optional[float], current_text: str, comparison_value: Optional[float], comparison_text: str) -> str:
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0):
+            tooltip = f"{comparison_text}: {format_occ_percent(comparison_value)}"
+        delta_html = occ_card_delta(value, comparison_value)
+        display_value = format_occ_percent(value)
+        return (
+            f"<div class='sales-dollar-card' data-tooltip='{tooltip}'>"
+            f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>{display_value}</span>{delta_html}</div>"
+            f"<div class='sales-dollar-card-sub' style='color:#f5c746;'>{current_text}</div>"
+            f"<div class='sales-dollar-card-sub'>Comparison: {comparison_text}</div>"
+            "</div>"
+        )
+
+    occ_main_cols = st.columns([1, 1])
+    with occ_main_cols[0]:
+        st.markdown("<div class='fw-section-title'>Occupancy %</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_occ_card(selected_occ, f"Occupancy: {range_label}", comparison_occ, comparison_label),
+            unsafe_allow_html=True,
+        )
+
+    with occ_main_cols[1]:
+        st.markdown("<div class='fw-section-title'>Classpass %</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_occ_card(selected_cp, f"Classpass: {range_label}", comparison_cp, comparison_label),
+            unsafe_allow_html=True,
+        )
+
+    occ_mix_cols = st.columns([1, 1])
+    with occ_mix_cols[0]:
+        st.markdown("<div class='fw-section-title'>Mat Occ %</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_occ_card(selected_mat_occ, f"Mat Occ: {range_label}", comparison_mat_occ, comparison_label),
+            unsafe_allow_html=True,
+        )
+
+    with occ_mix_cols[1]:
+        st.markdown("<div class='fw-section-title'>Reformer Occ %</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_occ_card(selected_reformer_occ, f"Reformer Occ: {range_label}", comparison_reformer_occ, comparison_label),
+            unsafe_allow_html=True,
+        )
 
     def build_occ_chart_df(df: pd.DataFrame, label: str) -> pd.DataFrame:
         if df.empty:
@@ -899,69 +938,151 @@ with tab_occ_percent:
             })
         return pd.DataFrame(rows)
 
-    current_occ_chart = build_occ_chart_df(filtered_df, "Selected")
-    comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
-    occ_chart_df = pd.concat([current_occ_chart, comparison_occ_chart], ignore_index=True)
+    occ_chart_cols = st.columns([1.25, 0.35])
+    with occ_chart_cols[0]:
+        st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
+        current_occ_chart = build_occ_chart_df(filtered_df, "Current")
+        comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
+        if current_occ_chart.empty:
+            st.info("Not enough data to display the occupancy breakdown chart.")
+        else:
+            current_occ_chart = current_occ_chart.sort_values("date")
+            comparison_occ_chart = comparison_occ_chart.sort_values("date")
+            current_occ_chart["x_axis"] = current_occ_chart["date"].dt.strftime("%b %d")
+            current_occ_chart["display_label"] = current_occ_chart["date"].dt.strftime("%b %d, %Y")
+            current_occ_chart["comparison_label"] = current_occ_chart["display_label"]
+            comparison_trimmed = comparison_occ_chart.head(len(current_occ_chart)).copy()
+            comparison_trimmed["x_axis"] = current_occ_chart["x_axis"].values[:len(comparison_trimmed)]
+            comparison_trimmed["display_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
+            comparison_trimmed["comparison_label"] = comparison_trimmed["display_label"]
+            occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
 
-    if occ_chart_df.empty:
-        st.info("No occupancy data to chart.")
-    else:
-        occ_chart = (
-            alt.Chart(occ_chart_df)
-            .mark_line(point=True)
-            .encode(
-                x="date:T",
-                y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%")),
-                color="series:N",
-                tooltip=["series", "date", alt.Tooltip("value:Q", title="Occupancy %", format=".1%")],
+            current_delta_html = occ_card_delta(selected_occ, comparison_occ)
+            comparison_delta_html = occ_card_delta(comparison_occ, selected_occ)
+            header_html = (
+                "<div class='sales-bar-container legend-dual'>"
+                "<div class='legend-row'>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:#cda643;'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:#cda643;'>{format_occ_percent(selected_occ)}</span><span class='legend-delta'>{current_delta_html}</span></span>"
+                f"<span class='legend-entry'><span class='legend-swatch' style='background:#3f4a78;'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:#3f4a78;'>{format_occ_percent(comparison_occ)}</span><span class='legend-delta'>{comparison_delta_html}</span></span>"
+                "</div>"
+                "</div>"
             )
-        )
-        st.altair_chart(occ_chart, use_container_width=True)
+            st.markdown(header_html, unsafe_allow_html=True)
 
-    def build_occ_table(df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty:
-            return pd.DataFrame(columns=pd.Index([
-                "date",
-                "Occupancy %",
-                "Classpass %",
-                "Mat Occ %",
-                "Reformer Occ %",
-            ]))
-        records = []
-        for date_value, group in df.groupby("date"):
-            records.append({
-                "date": date_value,
-                "Occupancy %": combined_occupancy_ratio(group),
-                "Classpass %": ratio_from_columns(group, "cp_visits", "total_visits"),
-                "Mat Occ %": mat_occupancy(group),
-                "Reformer Occ %": reformer_occupancy(group),
-            })
-        return pd.DataFrame(records).sort_values("date")
+            occ_chart = (
+                alt.Chart(occ_chart_df)
+                .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                .encode(
+                    x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                    xOffset="series:N",
+                    y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%", labelColor="#aeb3d1")),
+                    color=alt.Color(
+                        "series:N",
+                        scale=alt.Scale(range=["#3f4a78", "#cda643"], domain=["Comparison", "Current"]),
+                        title="",
+                        legend=None,
+                    ),
+                    tooltip=[
+                        alt.Tooltip("series:N", title="Series"),
+                        alt.Tooltip("display_label:N", title="Date"),
+                        alt.Tooltip("value:Q", title="Occupancy %", format=".1%"),
+                    ],
+                )
+                .properties(width=1187, height=240)
+            )
+            st.altair_chart(occ_chart, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    def format_occ_table(df: pd.DataFrame) -> pd.DataFrame:
+    with occ_chart_cols[1]:
+        st.markdown("<div class='fw-section-title'>Notes</div>", unsafe_allow_html=True)
+        st.info("Track how occupancy metrics move relative to last year to flag mix shifts early.")
+
+    def occupancy_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
         if df.empty:
-            return df
+            return pd.DataFrame(columns=pd.Index(["period", "value"]))
         view = df.copy()
-        if "date" in view.columns:
-            view["date"] = pd.to_datetime(view["date"]).dt.strftime("%m-%d-%y")
-        for column in ["Occupancy %", "Classpass %", "Mat Occ %", "Reformer Occ %"]:
-            view[column] = view[column].apply(format_occ_percent)
-        return view
+        view["date"] = pd.to_datetime(view["date"], errors="coerce")
+        if period == "weekly":
+            view["period"] = view["date"].dt.to_period("W-SUN").dt.start_time
+        else:
+            view["period"] = view["date"]
+        rows = []
+        for period_value, group in view.groupby("period"):
+            ratio = combined_occupancy_ratio(group)
+            if ratio is None or pd.isna(ratio):
+                continue
+            rows.append({"period": period_value, "value": ratio})
+        return pd.DataFrame(rows).sort_values("period", ascending=False)
 
-    selected_occ_table = build_occ_table(filtered_df)
-    comparison_occ_table = build_occ_table(comparison_df)
+    def render_occ_entry_card(title: str, value: Optional[float], comparison_label: str, comparison_value: Optional[float]) -> str:
+        tooltip = "Comparison: —"
+        if comparison_value not in (None, 0):
+            tooltip = f"{comparison_label}: {format_occ_percent(comparison_value)}"
+        delta_html = occ_card_delta(value, comparison_value)
+        display_value = format_occ_percent(value)
+        return (
+            f"<div class='sales-entry-card' data-tooltip='{tooltip}'>"
+            f"<div class='sales-entry-header'><span class='sales-entry-title'>{title}</span>{delta_html}</div>"
+            f"<div class='sales-entry-value'>{display_value}</div>"
+            f"<div class='sales-entry-meta'>Comparison: {comparison_label}</div>"
+            "</div>"
+        )
 
-    st.subheader("Occupancy (Selected Range)")
-    if selected_occ_table.empty:
-        st.info("No occupancy data available for the selected range.")
-    else:
-        st.dataframe(format_occ_table(selected_occ_table))
+    occ_summary_cols = st.columns(2)
 
-    st.subheader("Occupancy (Comparison Range)")
-    if comparison_occ_table.empty:
-        st.info("No occupancy data available for the comparison range.")
-    else:
-        st.dataframe(format_occ_table(comparison_occ_table))
+    with occ_summary_cols[0]:
+        st.markdown("<div class='fw-section-title'>Daily Occupancy</div>", unsafe_allow_html=True)
+        daily_occ = occupancy_by_period(filtered_df, "daily").head(6)
+        comparison_daily_occ = occupancy_by_period(comparison_df, "daily").head(len(daily_occ))
+        if daily_occ.empty:
+            st.info("No daily occupancy data available.")
+        else:
+            cards = []
+            for idx, row in enumerate(daily_occ.to_dict("records")):
+                period = cast(pd.Timestamp, row["period"])
+                comparison_label = "—"
+                comparison_value = None
+                if idx < len(comparison_daily_occ):
+                    comp_row = comparison_daily_occ.iloc[idx]
+                    comparison_value = comp_row["value"]
+                    comparison_label = cast(pd.Timestamp, comp_row["period"]).strftime("%b %d, %Y")
+                cards.append(
+                    render_occ_entry_card(
+                        period.strftime("%b %d, %Y"),
+                        row["value"],
+                        comparison_label,
+                        comparison_value,
+                    )
+                )
+            st.markdown("".join(cards), unsafe_allow_html=True)
+
+    with occ_summary_cols[1]:
+        st.markdown("<div class='fw-section-title'>Weekly Occupancy</div>", unsafe_allow_html=True)
+        weekly_occ = occupancy_by_period(filtered_df, "weekly").head(6)
+        comparison_weekly_occ = occupancy_by_period(comparison_df, "weekly").head(len(weekly_occ))
+        if weekly_occ.empty:
+            st.info("No weekly occupancy data available.")
+        else:
+            cards = []
+            for idx, row in enumerate(weekly_occ.to_dict("records")):
+                week_start = cast(pd.Timestamp, row["period"])
+                week_end = week_start + pd.Timedelta(days=6)
+                comparison_label = "—"
+                comparison_value = None
+                if idx < len(comparison_weekly_occ):
+                    comp_row = comparison_weekly_occ.iloc[idx]
+                    comparison_value = comp_row["value"]
+                    comp_week_start = cast(pd.Timestamp, comp_row["period"])
+                    comparison_label = f"{comp_week_start:%b %d} – {(comp_week_start + pd.Timedelta(days=6)):%b %d}"
+                cards.append(
+                    render_occ_entry_card(
+                        f"{week_start:%b %d} – {week_end:%b %d}",
+                        row["value"],
+                        comparison_label,
+                        comparison_value,
+                    )
+                )
+            st.markdown("".join(cards), unsafe_allow_html=True)
 
 
 with tab_snap:
