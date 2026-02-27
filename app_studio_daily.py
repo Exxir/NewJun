@@ -862,21 +862,27 @@ with tab_snap:
 
     def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
         numer = safe_sum(df, "total_visits")
-        capacity_sum = sum_or_zero(df, "capacity_mat")
-        classes_sum = sum_or_zero(df, "classes")
-        if numer in (None, 0) or capacity_sum == 0 or classes_sum == 0:
+        if numer in (None, 0):
             return None
-        return numer / (capacity_sum * classes_sum)
+        capacity = cast(pd.Series, df["capacity_mat"]) if "capacity_mat" in df.columns else pd.Series(0.0, index=df.index)
+        classes = cast(pd.Series, df["classes"]) if "classes" in df.columns else pd.Series(0.0, index=df.index)
+        slots = float((capacity.fillna(0) * classes.fillna(0)).sum())
+        if slots == 0:
+            return None
+        return numer / slots
 
     def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
-        mt_ref = safe_sum(df, "mt_visits_ref")
-        cp_ref = safe_sum(df, "cp_visits_ref")
-        numer = (mt_ref or 0) + (cp_ref or 0)
-        capacity_ref = sum_or_zero(df, "capacity_ref")
-        classes_ref = sum_or_zero(df, "class_ref")
-        if capacity_ref == 0 or classes_ref == 0 or numer == 0:
+        mt_ref = safe_sum(df, "mt_visits_ref") or 0.0
+        cp_ref = safe_sum(df, "cp_visits_ref") or 0.0
+        numer = mt_ref + cp_ref
+        if numer == 0:
             return None
-        return numer / (capacity_ref * classes_ref)
+        capacity = cast(pd.Series, df["capacity_ref"]) if "capacity_ref" in df.columns else pd.Series(0.0, index=df.index)
+        classes = cast(pd.Series, df["class_ref"]) if "class_ref" in df.columns else pd.Series(0.0, index=df.index)
+        slots = float((capacity.fillna(0) * classes.fillna(0)).sum())
+        if slots == 0:
+            return None
+        return numer / slots
 
     selected_visits_total = safe_sum(filtered_df, "total_visits") or 0.0
     comparison_visits_total = safe_sum(comparison_df, "total_visits") or 0.0
