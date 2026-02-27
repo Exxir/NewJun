@@ -292,12 +292,21 @@ def load_data():
         if column in df.columns:
             df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    if "capacity" in df.columns:
-        df["capacity_mat"] = df["capacity"].astype(float)
-    else:
-        df["capacity_mat"] = pd.NA
-    if "capacity_ref" not in df.columns:
-        df["capacity_ref"] = pd.NA
+    def as_numeric_series(series: Optional[pd.Series]) -> pd.Series:
+        if series is None:
+            return pd.Series(pd.NA, index=df.index)
+        return pd.Series(pd.to_numeric(series, errors="coerce"), index=series.index)
+
+    df["capacity_mat"] = as_numeric_series(df.get("capacity"))
+    df["capacity_ref"] = as_numeric_series(df.get("capacity_ref"))
+    mat_classes = as_numeric_series(df.get("classes"))
+    reformer_classes = as_numeric_series(df.get("class_ref"))
+    mat_capacity = df["capacity_mat"].fillna(0)
+    reformer_capacity = df["capacity_ref"].fillna(0)
+    combined_capacity = mat_capacity + reformer_capacity
+    combined_classes = mat_classes.fillna(0) + reformer_classes.fillna(0)
+    df["capacity"] = combined_capacity
+    df["classes_total"] = combined_classes
 
     def safe_sales_series(column: str) -> pd.Series:
         if column in df.columns:
