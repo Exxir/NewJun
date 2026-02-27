@@ -1293,6 +1293,7 @@ with tab_snap:
         components.html(
             """
             <script>
+            const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
             const cards = window.parent.document.querySelectorAll('div.snap-card[data-tab-target]');
             cards.forEach(card => {
                 if(card.dataset.bound === 'true') return;
@@ -1302,7 +1303,7 @@ with tab_snap:
                     if(!target) return;
                     const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
                     tabs.forEach(btn => {
-                        if(btn.innerText.trim() === target) {
+                        if(normalize(btn.innerText) === normalize(target)) {
                             btn.click();
                         }
                     });
