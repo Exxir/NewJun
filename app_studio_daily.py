@@ -938,7 +938,7 @@ with tab_occ_percent:
             })
         return pd.DataFrame(rows)
 
-    occ_chart_cols = st.columns([1.25, 0.75])
+    occ_chart_cols = st.columns([1, 1])
     with occ_chart_cols[0]:
         st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
         current_occ_chart = build_occ_chart_df(filtered_df, "Current")
@@ -993,9 +993,6 @@ with tab_occ_percent:
             st.altair_chart(occ_chart, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    with occ_chart_cols[1]:
-        st.markdown("<div class='fw-section-title'>Notes</div>", unsafe_allow_html=True)
-        st.info("Track how occupancy metrics move relative to last year to flag mix shifts early.")
 
     def occupancy_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
         if df.empty:
