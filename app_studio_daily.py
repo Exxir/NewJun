@@ -1,6 +1,6 @@
 from calendar import monthrange
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Callable, cast
 
 import altair as alt
 import pandas as pd
@@ -867,6 +867,43 @@ with tab_occ_percent:
     range_label = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
     comparison_label = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
 
+    metric_definitions: dict[str, dict[str, Any]] = {
+        "occupancy": {
+            "label": "Occupancy %",
+            "compute": combined_occupancy_ratio,
+        },
+        "classpass": {
+            "label": "Classpass %",
+            "compute": lambda df: ratio_from_columns(df, "cp_visits", "total_visits"),
+        },
+        "mat_occ": {
+            "label": "Mat Occ %",
+            "compute": mat_occupancy,
+        },
+        "reformer_occ": {
+            "label": "Reformer Occ %",
+            "compute": reformer_occupancy,
+        },
+    }
+
+    if "occ_chart_metric" not in st.session_state:
+        st.session_state["occ_chart_metric"] = "occupancy"
+
+    metric_selector_value = st.text_input(
+        "occ metric selector",
+        st.session_state["occ_chart_metric"],
+        key="occ_metric_selector",
+        label_visibility="collapsed",
+    )
+    st.markdown(
+        "<style>input[aria-label='occ metric selector']{display:none !important;}</style>",
+        unsafe_allow_html=True,
+    )
+    if metric_selector_value:
+        st.session_state["occ_chart_metric"] = metric_selector_value
+    active_metric_key = st.session_state.get("occ_chart_metric", "occupancy")
+    active_metric = metric_definitions.get(active_metric_key, metric_definitions["occupancy"])
+
     def format_occ_percent(value: Optional[float]) -> str:
         if value is None or pd.isna(value):
             return "—"
@@ -879,14 +916,14 @@ with tab_occ_percent:
         color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
         return f"<span style='color:{color};font-weight:600;'>{delta_pct:+.1f}%</span>"
 
-    def render_occ_card(value: Optional[float], current_text: str, comparison_value: Optional[float], comparison_text: str) -> str:
+    def render_occ_card(metric_key: str, value: Optional[float], current_text: str, comparison_value: Optional[float], comparison_text: str) -> str:
         tooltip = "Comparison: —"
         if comparison_value not in (None, 0):
             tooltip = f"{comparison_text}: {format_occ_percent(comparison_value)}"
         delta_html = occ_card_delta(value, comparison_value)
         display_value = format_occ_percent(value)
         return (
-            f"<div class='sales-dollar-card' data-tooltip='{tooltip}'>"
+            f"<div class='sales-dollar-card occ-card' data-tooltip='{tooltip}' data-occ-target='{metric_key}'>"
             f"<div class='sales-dollar-card-main'><span class='sales-dollar-card-value'>{display_value}</span>{delta_html}</div>"
             f"<div class='sales-dollar-card-sub' style='color:#f5c746;'>{current_text}</div>"
             f"<div class='sales-dollar-card-sub'>Comparison: {comparison_text}</div>"
@@ -897,14 +934,14 @@ with tab_occ_percent:
     with occ_main_cols[0]:
         st.markdown("<div class='fw-section-title'>Occupancy %</div>", unsafe_allow_html=True)
         st.markdown(
-            render_occ_card(selected_occ, f"Occupancy: {range_label}", comparison_occ, comparison_label),
+            render_occ_card("occupancy", selected_occ, f"Occupancy: {range_label}", comparison_occ, comparison_label),
             unsafe_allow_html=True,
         )
 
     with occ_main_cols[1]:
         st.markdown("<div class='fw-section-title'>Classpass %</div>", unsafe_allow_html=True)
         st.markdown(
-            render_occ_card(selected_cp, f"Classpass: {range_label}", comparison_cp, comparison_label),
+            render_occ_card("classpass", selected_cp, f"Classpass: {range_label}", comparison_cp, comparison_label),
             unsafe_allow_html=True,
         )
 
@@ -912,23 +949,43 @@ with tab_occ_percent:
     with occ_mix_cols[0]:
         st.markdown("<div class='fw-section-title'>Mat Occ %</div>", unsafe_allow_html=True)
         st.markdown(
-            render_occ_card(selected_mat_occ, f"Mat Occ: {range_label}", comparison_mat_occ, comparison_label),
+            render_occ_card("mat_occ", selected_mat_occ, f"Mat Occ: {range_label}", comparison_mat_occ, comparison_label),
             unsafe_allow_html=True,
         )
 
     with occ_mix_cols[1]:
         st.markdown("<div class='fw-section-title'>Reformer Occ %</div>", unsafe_allow_html=True)
         st.markdown(
-            render_occ_card(selected_reformer_occ, f"Reformer Occ: {range_label}", comparison_reformer_occ, comparison_label),
+            render_occ_card("reformer_occ", selected_reformer_occ, f"Reformer Occ: {range_label}", comparison_reformer_occ, comparison_label),
             unsafe_allow_html=True,
         )
 
-    def build_occ_chart_df(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        const cards = doc.querySelectorAll('.occ-card[data-occ-target]');
+        const input = doc.querySelector('input[aria-label="occ metric selector"]');
+        cards.forEach(card => {
+            if(card.dataset.bound === 'true') return;
+            card.dataset.bound = 'true';
+            card.addEventListener('click', () => {
+                if(!input) return;
+                input.value = card.dataset.occTarget;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+        </script>
+        """,
+        height=0,
+    )
+
+    def build_occ_chart_df(df: pd.DataFrame, label: str, compute_fn: Callable[[pd.DataFrame], Optional[float]]) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame(columns=pd.Index(["date", "value", "series"]))
         rows = []
         for date_value, group in df.groupby("date"):
-            occ_value = combined_occupancy_ratio(group)
+            occ_value = compute_fn(group)
             if occ_value is None or pd.isna(occ_value):
                 continue
             rows.append({
@@ -938,9 +995,11 @@ with tab_occ_percent:
             })
         return pd.DataFrame(rows)
 
+    metric_compute = cast(Callable[[pd.DataFrame], Optional[float]], active_metric["compute"])
+    active_metric_label = active_metric["label"]
     st.markdown("<div class='fw-section-title'>Occupancy Breakdown</div>", unsafe_allow_html=True)
-    current_occ_chart = build_occ_chart_df(filtered_df, "Current")
-    comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison")
+    current_occ_chart = build_occ_chart_df(filtered_df, "Current", metric_compute)
+    comparison_occ_chart = build_occ_chart_df(comparison_df, "Comparison", metric_compute)
     if current_occ_chart.empty:
         st.info("Not enough data to display the occupancy breakdown chart.")
     else:
@@ -955,13 +1014,15 @@ with tab_occ_percent:
         comparison_trimmed["comparison_label"] = comparison_trimmed["display_label"]
         occ_chart_df = pd.concat([current_occ_chart, comparison_trimmed], ignore_index=True)
 
-        current_delta_html = occ_card_delta(selected_occ, comparison_occ)
-        comparison_delta_html = occ_card_delta(comparison_occ, selected_occ)
+        metric_value_current = active_metric["compute"](filtered_df)
+        metric_value_comparison = active_metric["compute"](comparison_df)
+        current_delta_html = occ_card_delta(metric_value_current, metric_value_comparison)
+        comparison_delta_html = occ_card_delta(metric_value_comparison, metric_value_current)
         header_html = (
             "<div class='sales-bar-container legend-dual'>"
             "<div class='legend-row'>"
-            f"<span class='legend-entry'><span class='legend-swatch' style='background:#cda643;'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:#cda643;'>{format_occ_percent(selected_occ)}</span><span class='legend-delta'>{current_delta_html}</span></span>"
-            f"<span class='legend-entry'><span class='legend-swatch' style='background:#3f4a78;'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:#3f4a78;'>{format_occ_percent(comparison_occ)}</span><span class='legend-delta'>{comparison_delta_html}</span></span>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:#cda643;'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:#cda643;'>{format_occ_percent(metric_value_current)}</span><span class='legend-delta'>{current_delta_html}</span></span>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:#3f4a78;'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:#3f4a78;'>{format_occ_percent(metric_value_comparison)}</span><span class='legend-delta'>{comparison_delta_html}</span></span>"
             "</div>"
             "</div>"
         )
@@ -973,7 +1034,7 @@ with tab_occ_percent:
             .encode(
                 x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
                 xOffset="series:N",
-                y=alt.Y("value:Q", title="Occupancy %", axis=alt.Axis(format="%", labelColor="#aeb3d1")),
+                y=alt.Y("value:Q", title=active_metric_label, axis=alt.Axis(format="%", labelColor="#aeb3d1")),
                 color=alt.Color(
                     "series:N",
                     scale=alt.Scale(range=["#3f4a78", "#cda643"], domain=["Comparison", "Current"]),
