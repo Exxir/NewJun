@@ -1883,8 +1883,8 @@ with tab_sales_money:
         )
 
     card_definitions = [
-        ("Sales Mat", ["mt_sales_mat", "cp_sales_mat"]),
-        ("Sales Ref", ["mt_sales_ref", "cp_sales_ref"]),
+        ("Mat Sales", ["mt_sales_mat", "cp_sales_mat"]),
+        ("Reformer Sales", ["mt_sales_ref", "cp_sales_ref"]),
         ("Classpass Sales", ["cp_sales_mat", "cp_sales_ref"]),
         ("Membership Sales", ["sales_mem"]),
     ]
