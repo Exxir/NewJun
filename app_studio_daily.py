@@ -718,6 +718,10 @@ month_standard_to_date = sum_or_zero(month_to_date_df, "mt_visits")
 month_classpass_to_date = sum_or_zero(month_to_date_df, "cp_visits")
 month_standard_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits")
 month_classpass_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
+month_mat_visits_to_date = sum_or_zero(month_to_date_df, "total_visits") + sum_or_zero(month_to_date_df, "cp_visits")
+month_mat_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
+month_reformer_visits_to_date = sum_or_zero(month_to_date_df, "cp_visits") + sum_or_zero(month_to_date_df, "cp_visits_ref")
+month_reformer_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits_ref")
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
@@ -2023,15 +2027,18 @@ with tab_trips:
             unsafe_allow_html=True,
         )
 
-    trips_mix_cols = st.columns([1, 1])
+    trips_mix_cols = st.columns(4)
+    period_label = f"{month_start_ts:%b %d} – {actual_month_end:%b %d, %Y}"
+    comp_period_label = f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d, %Y}"
+
     with trips_mix_cols[0]:
         st.markdown("<div class='fw-section-title'>Standard Visits</div>", unsafe_allow_html=True)
         st.markdown(
             render_trips_card(
                 month_standard_to_date,
-                f"Standard: {month_start_ts:%b %d} – {actual_month_end:%b %d}",
+                f"Standard: {period_label}",
                 month_standard_comp,
-                f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}",
+                comp_period_label,
             ),
             unsafe_allow_html=True,
         )
@@ -2041,9 +2048,33 @@ with tab_trips:
         st.markdown(
             render_trips_card(
                 month_classpass_to_date,
-                f"Classpass: {month_start_ts:%b %d} – {actual_month_end:%b %d}",
+                f"Classpass: {period_label}",
                 month_classpass_comp,
-                f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}",
+                comp_period_label,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with trips_mix_cols[2]:
+        st.markdown("<div class='fw-section-title'>Mat Visits</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_trips_card(
+                month_mat_visits_to_date,
+                f"Mat: {period_label}",
+                month_mat_visits_comp,
+                comp_period_label,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with trips_mix_cols[3]:
+        st.markdown("<div class='fw-section-title'>Reformer Visits</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_trips_card(
+                month_reformer_visits_to_date,
+                f"Reformer: {period_label}",
+                month_reformer_visits_comp,
+                comp_period_label,
             ),
             unsafe_allow_html=True,
         )
