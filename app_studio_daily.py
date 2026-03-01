@@ -839,56 +839,7 @@ comparison_reformer_occ = reformer_occupancy(comparison_df)
 
 
 with tab_trips:
-    selected_visits = filtered_df.copy()
-    comparison_visits = comparison_df.copy()
-
-    for frame in (selected_visits, comparison_visits):
-        for col in ("mt_visits", "cp_visits"):
-            if col not in frame.columns:
-                if "total_visits" in frame.columns:
-                    frame[col] = frame["total_visits"] / 2
-                else:
-                    frame[col] = 0
-        frame["visits"] = frame[["mt_visits", "cp_visits"]].fillna(0).sum(axis=1)
-
-    total_visits = selected_visits["visits"].sum()
-    comparison_total_visits = comparison_visits["visits"].sum() if not comparison_visits.empty else 0.0
-    visits_delta = None
-    if comparison_total_visits:
-        visits_delta = ((total_visits - comparison_total_visits) / comparison_total_visits) * 100
-
-    visit_cols = st.columns(2)
-    visit_cols[0].metric("Visits (selected)", f"{total_visits:,.0f}", f"{visits_delta:+.1f}%" if visits_delta is not None else None)
-    visit_cols[1].metric("Visits (comparison)", f"{comparison_total_visits:,.0f}")
-
-    visit_chart_df = pd.concat([
-        selected_visits.assign(series="Selected"),
-        comparison_visits.assign(series="Comparison"),
-    ])
-
-    if visit_chart_df.empty:
-        st.info("No visit data to chart.")
-    else:
-        visit_chart = (
-            alt.Chart(visit_chart_df)
-            .mark_line(point=True)
-            .encode(
-                x="date:T",
-                y="visits:Q",
-                color="series:N",
-                tooltip=["series", "date", "visits"]
-            )
-        )
-        st.altair_chart(visit_chart, use_container_width=True)
-
-    st.subheader("Visits (Selected Range)")
-    st.dataframe(format_table(selected_visits))
-
-    st.subheader("Visits (Comparison Range)")
-    if comparison_visits.empty:
-        st.info("No comparison data available for visits.")
-    else:
-        st.dataframe(format_table(comparison_visits))
+    pass
 
 with tab_occ_percent:
     range_label = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
