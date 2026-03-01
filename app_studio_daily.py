@@ -702,7 +702,7 @@ comparison_month_start = cast(pd.Timestamp, pd.Timestamp(comp_start_date).replac
 comparison_month_last_day = monthrange(comparison_month_start.year, comparison_month_start.month)[1]
 comparison_month_end = cast(pd.Timestamp, comparison_month_start.replace(day=comparison_month_last_day))
 month_sales_estimate_comp = sum_sales_between(studio_df, comparison_month_start, comparison_month_end)
-month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d}"
+month_label_td_comp = f"{month_td_comp_start:%b %d} – {month_td_comp_end:%b %d, %Y}"
 month_label_est_comp = f"{comparison_month_start:%b %d} – {comparison_month_end:%b %d, %Y}"
 month_visits_to_date = sum_or_zero(month_to_date_df, "total_visits")
 monthly_projection_remaining_visits = 0.0
