@@ -322,7 +322,8 @@ def load_data():
             "mt_sales_ref",
             "mt_sales_total",
             "capacity",
-            "capacity_ref"
+            "capacity_ref",
+            "sales_mem"
         FROM public.studio_daily_metrics
     """)
     with engine.connect() as conn:
@@ -352,6 +353,7 @@ def load_data():
         "mt_sales_total",
         "capacity",
         "capacity_ref",
+        "sales_mem",
     )
     for column in numeric_columns:
         if column in df.columns:
@@ -1867,6 +1869,38 @@ with tab_sales_money:
                 f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y} <span style='color:#19c37d;font-weight:600;margin-left:0.35rem;'>{est_delta_label}</span>",
                 month_sales_estimate_comp,
                 f"Prior Year: {month_label_est_comp}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    def month_sum(columns: List[str]) -> float:
+        return sum(sum_or_zero(month_to_date_df, column) for column in columns)
+
+    def comparison_sum(columns: List[str]) -> float:
+        return sum(
+            sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column=column)
+            for column in columns
+        )
+
+    card_definitions = [
+        ("Sales Mat", ["mt_sales_mat", "cp_sales_mat"]),
+        ("Sales Ref", ["mt_sales_ref", "cp_sales_ref"]),
+        ("Classpass Sales", ["cp_sales_mat", "cp_sales_ref"]),
+        ("Membership Sales", ["sales_mem"]),
+    ]
+    mix_cols = st.columns(len(card_definitions))
+    period_label = f"{month_start_ts:%b %d} – {actual_month_end:%b %d}"
+    for col, (title, fields) in zip(mix_cols, card_definitions):
+        current_value = month_sum(fields)
+        comparison_value = comparison_sum(fields)
+        col.markdown(f"<div class='fw-section-title'>{title}</div>", unsafe_allow_html=True)
+        col.markdown(
+            render_sales_card(
+                "",
+                current_value,
+                f"{title}: {period_label}",
+                comparison_value,
+                month_label_td_comp,
             ),
             unsafe_allow_html=True,
         )
