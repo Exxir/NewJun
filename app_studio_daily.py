@@ -1906,65 +1906,62 @@ with tab_sales_money:
         )
 
     st.markdown("<div class='fw-section-title'>Sales Breakdown</div>", unsafe_allow_html=True)
-    chart_cols = st.columns([1.25, 0.35])
-    with chart_cols[0]:
-        chart_data_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
-        chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison").sort_values("date")
-        if chart_data_current.empty:
-            st.info("Not enough data to display the snapshot chart.")
-        else:
-            chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
-            chart_data_current["display_label"] = chart_data_current["date"].dt.strftime("%b %d, %Y")
-            chart_data_current["comparison_label"] = chart_data_current["display_label"]
+    chart_data_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
+    chart_data_comparison = build_chart_data(comparison_df, "Comparison", "Comparison").sort_values("date")
+    if chart_data_current.empty:
+        st.info("Not enough data to display the snapshot chart.")
+    else:
+        chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
+        chart_data_current["display_label"] = chart_data_current["date"].dt.strftime("%b %d, %Y")
+        chart_data_current["comparison_label"] = chart_data_current["display_label"]
 
-            comparison_trimmed = chart_data_comparison.head(len(chart_data_current)).copy()
-            comparison_trimmed["x_axis"] = chart_data_current["x_axis"].values[:len(comparison_trimmed)]
-            comparison_trimmed["display_label"] = chart_data_current["display_label"].values[:len(comparison_trimmed)]
-            comparison_trimmed["comparison_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
+        comparison_trimmed = chart_data_comparison.head(len(chart_data_current)).copy()
+        comparison_trimmed["x_axis"] = chart_data_current["x_axis"].values[:len(comparison_trimmed)]
+        comparison_trimmed["display_label"] = chart_data_current["display_label"].values[:len(comparison_trimmed)]
+        comparison_trimmed["comparison_label"] = comparison_trimmed["date"].dt.strftime("%b %d, %Y")
 
-            chart_df = pd.concat([chart_data_current, comparison_trimmed], ignore_index=True)
+        chart_df = pd.concat([chart_data_current, comparison_trimmed], ignore_index=True)
 
-            current_range = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
-            comparison_range = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
-            spacer = "&nbsp;" * 6
-            current_delta = sales_card_delta(range_sales_display, comparison_sales)
-            comparison_delta = sales_card_delta(comparison_sales, range_sales_display)
-            comparison_color = "#3f4a78"
-            current_bar_color = "#cda643"
-            header_html = (
-                "<div class='sales-bar-container legend-dual'>"
-                "<div class='legend-row'>"
-                f"<span class='legend-entry'><span class='legend-swatch' style='background:{current_bar_color};'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:{current_bar_color};'>${range_sales_display:,.0f}</span><span class='legend-period'>{current_range}</span><span class='legend-delta'>{current_delta}</span></span>"
-                f"<span class='legend-entry'><span class='legend-swatch' style='background:{comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{comparison_color};'>${comparison_sales:,.0f}</span><span class='legend-period'>{comparison_range}</span><span class='legend-delta'>{comparison_delta}</span></span>"
-                "</div>"
-                "</div>"
+        current_range = f"{start_date:%b %d} – {end_date:%b %d, %Y}"
+        comparison_range = f"{comp_start_date:%b %d} – {comp_end_date:%b %d, %Y}"
+        current_delta = sales_card_delta(range_sales_display, comparison_sales)
+        comparison_delta = sales_card_delta(comparison_sales, range_sales_display)
+        comparison_color = "#3f4a78"
+        current_bar_color = "#cda643"
+        header_html = (
+            "<div class='sales-bar-container legend-dual'>"
+            "<div class='legend-row'>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:{current_bar_color};'></span><span class='legend-label'>Current</span><span class='legend-value' style='color:{current_bar_color};'>${range_sales_display:,.0f}</span><span class='legend-period'>{current_range}</span><span class='legend-delta'>{current_delta}</span></span>"
+            f"<span class='legend-entry'><span class='legend-swatch' style='background:{comparison_color};'></span><span class='legend-label'>Comparison</span><span class='legend-value' style='color:{comparison_color};'>${comparison_sales:,.0f}</span><span class='legend-period'>{comparison_range}</span><span class='legend-delta'>{comparison_delta}</span></span>"
+            "</div>"
+            "</div>"
+        )
+        st.markdown(header_html, unsafe_allow_html=True)
+
+        bar_chart = (
+            alt.Chart(chart_df)
+            .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                xOffset="series:N",
+                y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
+                color=alt.Color(
+                    "series:N",
+                    scale=alt.Scale(range=[comparison_color, current_bar_color], domain=["Comparison", "Current"]),
+                    title="",
+                    legend=None,
+                ),
+                tooltip=[
+                    alt.Tooltip("series:N", title="Series"),
+                    alt.Tooltip("display_label:N", title="Current Date"),
+                    alt.Tooltip("netsales:Q", title="Net Sales", format="$,.0f"),
+                    alt.Tooltip("comparison_label:N", title="Comparison Date"),
+                ],
             )
-            st.markdown(header_html, unsafe_allow_html=True)
-
-            bar_chart = (
-                alt.Chart(chart_df)
-                .mark_bar(width=14, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-                .encode(
-                    x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
-                    xOffset="series:N",
-                    y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
-                    color=alt.Color(
-                        "series:N",
-                        scale=alt.Scale(range=[comparison_color, current_bar_color], domain=["Comparison", "Current"]),
-                        title="",
-                        legend=None,
-                    ),
-                    tooltip=[
-                        alt.Tooltip("series:N", title="Series"),
-                        alt.Tooltip("display_label:N", title="Current Date"),
-                        alt.Tooltip("netsales:Q", title="Net Sales", format="$,.0f"),
-                        alt.Tooltip("comparison_label:N", title="Comparison Date"),
-                    ],
-                )
-                .properties(width=1187, height=240)
-            )
-            st.altair_chart(bar_chart, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            .properties(height=260)
+        )
+        st.altair_chart(bar_chart, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
     sales_cols = st.columns(2)
 
     summary_df = cast(pd.DataFrame, studio_df.copy())
