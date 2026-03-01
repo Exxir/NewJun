@@ -415,7 +415,7 @@ df = load_data()
 
 # --- Studio Selector ---
 studios = sorted(df["studio"].unique())
-default_selection = studios[:1]
+default_selection = studios
 st.markdown('<div class="selector-title" style="font-weight:700;font-size:1.15em;">Jungle Dashboard</div>', unsafe_allow_html=True)
 selected_studios = st.multiselect(
     "Studios",
