@@ -688,7 +688,7 @@ full_month_estimate_total = month_sales_to_date + monthly_projection_remaining_t
 month_sales_estimate = full_month_estimate_total
 month_sales_to_date_display = month_sales_to_date
 month_label_td = (
-    f"Sales MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d}"
+    f"Sales MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d, %Y}"
     if month_sales_to_date
     else "Sales MTD: No data"
 )
@@ -1889,7 +1889,7 @@ with tab_sales_money:
         ("Membership Sales", ["sales_mem"]),
     ]
     mix_cols = st.columns(len(card_definitions))
-    period_label = f"{month_start_ts:%b %d} – {actual_month_end:%b %d}"
+    period_label = f"{month_start_ts:%b %d} – {actual_month_end:%b %d, %Y}"
     for col, (title, fields) in zip(mix_cols, card_definitions):
         current_value = month_sum(fields)
         comparison_value = comparison_sum(fields)
