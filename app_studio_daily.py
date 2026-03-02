@@ -786,62 +786,17 @@ with tab_data:
         st.dataframe(format_table(comparison_view))
 
 with tab_forecast:
-    selected_label = f"{start_date:%m-%d-%y} – {end_date:%m-%d-%y}"
-    comparison_label = f"{comp_start_date:%m-%d-%y} – {comp_end_date:%m-%d-%y}"
-
-    selected_series_label = f"Current {selected_label}"
-    comparison_series_label = f"Comparison {comparison_label}"
-
-    selected_chart_df = build_chart_data(filtered_df, selected_series_label, selected_label)
-    comparison_chart_df = build_chart_data(comparison_df, comparison_series_label, comparison_label)
-    if horizon in ("Daily", "Weekly"):
-        selected_chart_df["x_axis"] = selected_chart_df["date"].dt.strftime("%a")
-        comparison_chart_df["x_axis"] = comparison_chart_df["date"].dt.strftime("%a")
-        x_title = "Weekday"
-    else:
-        selected_chart_df["x_axis"] = selected_chart_df["date"].dt.strftime("%m")
-        comparison_chart_df["x_axis"] = comparison_chart_df["date"].dt.strftime("%m")
-        x_title = "Month"
-    chart_frames = [selected_chart_df, comparison_chart_df]
-    legend_order = [selected_series_label, comparison_series_label]
-
-    chart_df = pd.concat(chart_frames, ignore_index=True)
-
-    if chart_df.empty:
-        st.info("Not enough data to render the chart.")
-    else:
-        weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        chart = (
-            alt.Chart(chart_df)
-            .mark_line(point=True)
-            .encode(
-                x=alt.X(
-                    "x_axis:N",
-                    title=x_title,
-                ),
-                y=alt.Y("netsales:Q", title="Net sales"),
-                color=alt.Color(
-                    "series:N",
-                    title="",
-                    scale=alt.Scale(domain=legend_order),
-                    legend=alt.Legend(
-                        orient="bottom",
-                        direction="horizontal",
-                        labelLimit=0,
-                        symbolType="circle"
-                    )
-                ),
-                tooltip=[
-                    alt.Tooltip("series:N", title="Range"),
-                    alt.Tooltip("date:T", title="Date"),
-                    alt.Tooltip("weekday:N", title="Weekday"),
-                    alt.Tooltip("netsales:Q", title="Net sales", format="$.0f"),
-                    alt.Tooltip("range_label:N", title="Date range")
-                ]
-            )
-            .interactive()
-        )
-        st.altair_chart(chart, use_container_width=True)
+    st.markdown("<div class='fw-section-title'>Forecast Drivers</div>", unsafe_allow_html=True)
+    future_ts = cast(pd.Timestamp, pd.Timestamp(end_date) + pd.Timedelta(days=1))
+    projections = project_sales_for_dates([future_ts])
+    future_total, source_ts = projections[0]
+    source_display = source_ts.strftime("%b %d, %Y") if source_ts else "—"
+    reason = "Projected from last year's matching weekday with YoY multiplier." if source_ts else "No historical source date available."
+    st.metric(
+        label=f"Projected Next-Day Sales (based on {source_display})",
+        value=f"${future_total:,.0f}",
+    )
+    st.info(reason)
 
 selected_occ = combined_occupancy_ratio(filtered_df)
 comparison_occ = combined_occupancy_ratio(comparison_df)
