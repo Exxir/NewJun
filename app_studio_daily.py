@@ -116,7 +116,7 @@ def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
     mat_visits = sum_or_zero(df, "mat_visits_raw")
     cp_mat = sum_or_zero(df, "cp_visits")
     numerator = mat_visits + cp_mat
-    capacity = _series_or_zero(df, "capacity_mat")
+    capacity = _series_or_zero(df, "capacity")
     classes = _series_or_zero(df, "classes")
     denominator = float((capacity * classes).sum())
     if denominator == 0 or numerator == 0:
