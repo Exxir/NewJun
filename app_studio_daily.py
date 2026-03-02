@@ -2213,12 +2213,17 @@ def format_capacity_value(value: Optional[float]) -> str:
 
 
 with tab_capacity:
-    total_capacity = sum_or_zero(filtered_df, "capacity") * sum_or_zero(filtered_df, "classes_total")
-    comparison_capacity = sum_or_zero(comparison_df, "capacity") * sum_or_zero(comparison_df, "classes_total")
-    mat_capacity = sum_or_zero(filtered_df, "capacity_mat") * sum_or_zero(filtered_df, "classes")
-    mat_capacity_comp = sum_or_zero(comparison_df, "capacity_mat") * sum_or_zero(comparison_df, "classes")
-    ref_capacity = sum_or_zero(filtered_df, "capacity_ref") * sum_or_zero(filtered_df, "class_ref")
-    ref_capacity_comp = sum_or_zero(comparison_df, "capacity_ref") * sum_or_zero(comparison_df, "class_ref")
+    def capacity_sum(df: pd.DataFrame, cap_col: str, class_col: str) -> float:
+        if df.empty or cap_col not in df.columns or class_col not in df.columns:
+            return 0.0
+        return float((df[cap_col].fillna(0) * df[class_col].fillna(0)).sum())
+
+    mat_capacity = capacity_sum(filtered_df, "capacity_mat", "classes")
+    mat_capacity_comp = capacity_sum(comparison_df, "capacity_mat", "classes")
+    ref_capacity = capacity_sum(filtered_df, "capacity_ref", "class_ref")
+    ref_capacity_comp = capacity_sum(comparison_df, "capacity_ref", "class_ref")
+    total_capacity = mat_capacity + ref_capacity
+    comparison_capacity = mat_capacity_comp + ref_capacity_comp
 
     cap_cols = st.columns(4)
     cap_definitions = [
