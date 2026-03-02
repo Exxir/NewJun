@@ -786,17 +786,43 @@ with tab_data:
         st.dataframe(format_table(comparison_view))
 
 with tab_forecast:
-    st.markdown("<div class='fw-section-title'>Forecast Drivers</div>", unsafe_allow_html=True)
-    future_ts = cast(pd.Timestamp, pd.Timestamp(end_date) + pd.Timedelta(days=1))
-    projections = project_sales_for_dates([future_ts])
-    future_total, source_ts = projections[0]
-    source_display = source_ts.strftime("%b %d, %Y") if source_ts else "—"
-    reason = "Projected from last year's matching weekday with YoY multiplier." if source_ts else "No historical source date available."
-    st.metric(
-        label=f"Projected Next-Day Sales (based on {source_display})",
-        value=f"${future_total:,.0f}",
-    )
-    st.info(reason)
+    st.markdown("<div class='fw-section-title'>Upcoming Projections</div>", unsafe_allow_html=True)
+    projection_dates = pd.date_range(end_date + timedelta(days=1), periods=7)
+    projection_rows = []
+    for future_date in projection_dates:
+        future_ts = cast(pd.Timestamp, future_date)
+        amount, source_ts = project_sales_for_dates([future_ts])[0]
+        source_display = source_ts.strftime("%b %d, %Y") if source_ts else "—"
+        source_value = 0.0
+        if source_ts is not None:
+            source_day = source_ts.date()
+            source_day_df = studio_df[studio_df["date"] == source_ts]
+            source_value = float(source_day_df["netsales"].sum()) if not source_day_df.empty else 0.0
+        projection_rows.append({
+            "date": future_ts,
+            "weekday": future_ts.strftime("%a"),
+            "studio": selection_label,
+            "predicted_sales": amount,
+            "source_date": source_display,
+            "source_sales": source_value,
+        })
+
+    projections_df = pd.DataFrame(projection_rows)
+    if projections_df.empty:
+        st.info("No projections available.")
+    else:
+        display_df = projections_df.copy()
+        display_df["date"] = display_df["date"].dt.strftime("%b %d, %Y")
+        display_df["predicted_sales"] = display_df["predicted_sales"].apply(lambda x: f"${x:,.0f}")
+        display_df["source_sales"] = display_df["source_sales"].apply(lambda x: f"${x:,.0f}" if x else "—")
+        st.dataframe(display_df.rename(columns={
+            "date": "Date",
+            "weekday": "Weekday",
+            "studio": "Studio",
+            "predicted_sales": "Prediction Sales",
+            "source_date": "Source Date",
+            "source_sales": "Source Sales",
+        }))
 
 selected_occ = combined_occupancy_ratio(filtered_df)
 comparison_occ = combined_occupancy_ratio(comparison_df)
