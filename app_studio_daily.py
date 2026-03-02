@@ -407,7 +407,8 @@ def load_data():
     cp_visits_ref_series = cp_visits_ref_series.fillna(0)
 
     df["cp_visits"] = cp_visits_mat_series
-    df["total_visits"] = mt_visits_ref_series + total_visits_mat_series + cp_visits_mat_series + cp_visits_ref_series
+    reformer_visits_series = mt_visits_ref_series + cp_visits_ref_series
+    df["total_visits"] = total_visits_mat_series + cp_visits_mat_series + reformer_visits_series
     mt_visits_series = df.get("mt_visits")
     fallback_series = total_visits_mat_series
     if mt_visits_series is None:
@@ -730,8 +731,8 @@ month_standard_comp = sum_sales_between(comparison_df, month_td_comp_start, mont
 month_classpass_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
 month_mat_visits_to_date = sum_or_zero(month_to_date_df, "mat_visits_raw") + sum_or_zero(month_to_date_df, "cp_visits")
 month_mat_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mat_visits_raw") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
-month_reformer_visits_to_date = sum_or_zero(month_to_date_df, "cp_visits") + sum_or_zero(month_to_date_df, "cp_visits_ref")
-month_reformer_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits_ref")
+month_reformer_visits_to_date = sum_or_zero(month_to_date_df, "mt_visits_ref") + sum_or_zero(month_to_date_df, "cp_visits_ref")
+month_reformer_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits_ref") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits_ref")
 month_sales_estimate_delta_pct = None
 if month_sales_estimate_comp not in (None, 0):
     month_sales_estimate_delta_pct = ((month_sales_estimate - month_sales_estimate_comp) / month_sales_estimate_comp) * 100
