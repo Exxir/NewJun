@@ -113,29 +113,27 @@ def _series_or_zero(df: pd.DataFrame, column: str) -> pd.Series:
 
 
 def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
-    numer = safe_sum(df, "total_visits")
-    if numer in (None, 0):
-        return None
+    mat_visits = sum_or_zero(df, "mat_visits_raw")
+    cp_mat = sum_or_zero(df, "cp_visits")
+    numerator = mat_visits + cp_mat
     capacity = _series_or_zero(df, "capacity_mat")
     classes = _series_or_zero(df, "classes")
-    slots = float((capacity * classes).sum())
-    if slots == 0:
+    denominator = float((capacity * classes).sum())
+    if denominator == 0 or numerator == 0:
         return None
-    return numer / slots
+    return numerator / denominator
 
 
 def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
-    mt_ref = safe_sum(df, "mt_visits_ref") or 0.0
-    cp_ref = safe_sum(df, "cp_visits_ref") or 0.0
-    numer = mt_ref + cp_ref
-    if numer == 0:
-        return None
+    mt_ref = sum_or_zero(df, "mt_visits_ref")
+    cp_ref = sum_or_zero(df, "cp_visits_ref")
+    numerator = mt_ref + cp_ref
     capacity = _series_or_zero(df, "capacity_ref")
     classes = _series_or_zero(df, "class_ref")
-    slots = float((capacity * classes).sum())
-    if slots == 0:
+    denominator = float((capacity * classes).sum())
+    if denominator == 0 or numerator == 0:
         return None
-    return numer / slots
+    return numerator / denominator
 
 
 def closest_timestamp(index: pd.DatetimeIndex, candidate: pd.Timestamp) -> pd.Timestamp:
