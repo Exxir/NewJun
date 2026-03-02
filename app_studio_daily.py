@@ -79,11 +79,23 @@ def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     mat_visits = sum_or_zero(df, "mat_visits_raw")
     ref_visits = sum_or_zero(df, "mt_visits_ref")
     numerator = mat_visits + ref_visits
-    capacity_mat = sum_or_zero(df, "capacity")
-    classes_mat = sum_or_zero(df, "classes")
-    capacity_ref = sum_or_zero(df, "capacity_ref")
-    classes_ref = sum_or_zero(df, "class_ref")
-    denominator = (capacity_mat * classes_mat) + (capacity_ref * classes_ref)
+    cap_mat_series = df.get("capacity_mat")
+    if cap_mat_series is None:
+        cap_mat_series = pd.Series(0, index=df.index, dtype=float)
+    cap_mat_series = cap_mat_series.fillna(0)
+    classes_mat_series = df.get("classes")
+    if classes_mat_series is None:
+        classes_mat_series = pd.Series(0, index=df.index, dtype=float)
+    classes_mat_series = classes_mat_series.fillna(0)
+    cap_ref_series = df.get("capacity_ref")
+    if cap_ref_series is None:
+        cap_ref_series = pd.Series(0, index=df.index, dtype=float)
+    cap_ref_series = cap_ref_series.fillna(0)
+    classes_ref_series = df.get("class_ref")
+    if classes_ref_series is None:
+        classes_ref_series = pd.Series(0, index=df.index, dtype=float)
+    classes_ref_series = classes_ref_series.fillna(0)
+    denominator = float((cap_mat_series * classes_mat_series + cap_ref_series * classes_ref_series).sum())
     if denominator == 0 or numerator == 0:
         return None
     return numerator / denominator
@@ -105,9 +117,15 @@ def _series_or_zero(df: pd.DataFrame, column: str) -> pd.Series:
 
 def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
     numerator = sum_or_zero(df, "mat_visits_raw")
-    capacity = sum_or_zero(df, "capacity")
-    classes = sum_or_zero(df, "classes")
-    denominator = capacity * classes
+    cap_series = df.get("capacity_mat")
+    if cap_series is None:
+        cap_series = pd.Series(0, index=df.index, dtype=float)
+    cap_series = cap_series.fillna(0)
+    classes_series = df.get("classes")
+    if classes_series is None:
+        classes_series = pd.Series(0, index=df.index, dtype=float)
+    classes_series = classes_series.fillna(0)
+    denominator = float((cap_series * classes_series).sum())
     if denominator == 0 or numerator == 0:
         return None
     return numerator / denominator
@@ -115,9 +133,15 @@ def mat_occupancy(df: pd.DataFrame) -> Optional[float]:
 
 def reformer_occupancy(df: pd.DataFrame) -> Optional[float]:
     numerator = sum_or_zero(df, "mt_visits_ref")
-    capacity = sum_or_zero(df, "capacity_ref")
-    classes = sum_or_zero(df, "class_ref")
-    denominator = capacity * classes
+    cap_series = df.get("capacity_ref")
+    if cap_series is None:
+        cap_series = pd.Series(0, index=df.index, dtype=float)
+    cap_series = cap_series.fillna(0)
+    classes_series = df.get("class_ref")
+    if classes_series is None:
+        classes_series = pd.Series(0, index=df.index, dtype=float)
+    classes_series = classes_series.fillna(0)
+    denominator = float((cap_series * classes_series).sum())
     if denominator == 0 or numerator == 0:
         return None
     return numerator / denominator
