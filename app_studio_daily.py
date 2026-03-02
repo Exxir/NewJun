@@ -76,26 +76,26 @@ def sum_or_zero(df: pd.DataFrame, column: str) -> float:
 def combined_occupancy_ratio(df: pd.DataFrame) -> Optional[float]:
     if df.empty:
         return None
-    mat_visits = sum_or_zero(df, "total_visits")
-    mt_ref_visits = sum_or_zero(df, "mt_visits_ref")
-    cp_ref_visits = sum_or_zero(df, "cp_visits_ref")
-    numer = mat_visits + mt_ref_visits + cp_ref_visits
-    def column_or_zero(name: str) -> pd.Series:
+    def series_or_zero(name: str) -> pd.Series:
         if name in df.columns:
-            series = cast(pd.Series, df[name])
-            return series.fillna(0)
+            return cast(pd.Series, df[name]).fillna(0)
         return pd.Series(0.0, index=df.index)
 
-    capacity_mat = column_or_zero("capacity_mat")
-    classes_mat = column_or_zero("classes")
-    capacity_ref = column_or_zero("capacity_ref")
-    classes_ref = column_or_zero("class_ref")
-    mat_slots = float((capacity_mat * classes_mat).sum())
-    ref_slots = float((capacity_ref * classes_ref).sum())
-    denom = mat_slots + ref_slots
-    if denom == 0 or numer == 0:
+    total_visits_mat = series_or_zero("mat_visits_raw")
+    mt_visits_ref = series_or_zero("mt_visits_ref")
+    cp_visits_mat = series_or_zero("cp_visits")
+    cp_visits_ref = series_or_zero("cp_visits_ref")
+    numerator = float((total_visits_mat + mt_visits_ref + cp_visits_mat + cp_visits_ref).sum())
+
+    capacity_mat = series_or_zero("capacity_mat")
+    classes_mat = series_or_zero("classes")
+    capacity_ref = series_or_zero("capacity_ref")
+    classes_ref = series_or_zero("class_ref")
+    denominator = float((capacity_mat * classes_mat + capacity_ref * classes_ref).sum())
+
+    if denominator == 0 or numerator == 0:
         return None
-    return numer / denom
+    return numerator / denominator
 
 
 def ratio_from_columns(df: pd.DataFrame, numer: str, denom: str) -> Optional[float]:
