@@ -759,7 +759,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_forecast, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Forecast", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_capacity, tab_forecast, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Capacity", "Forecast", "Data"])
 
 with tab_data:
     col1, col2 = st.columns([1, 1])
@@ -2206,3 +2206,33 @@ with tab_trips:
                 )
             )
         st.markdown("".join(trips_weekly_html_parts), unsafe_allow_html=True)
+def format_capacity_value(value: Optional[float]) -> str:
+    if value is None:
+        return "—"
+    return f"{value:,.0f}"
+
+
+with tab_capacity:
+    total_capacity = sum_or_zero(filtered_df, "capacity") * sum_or_zero(filtered_df, "classes_total")
+    comparison_capacity = sum_or_zero(comparison_df, "capacity") * sum_or_zero(comparison_df, "classes_total")
+    mat_capacity = sum_or_zero(filtered_df, "capacity_mat") * sum_or_zero(filtered_df, "classes")
+    mat_capacity_comp = sum_or_zero(comparison_df, "capacity_mat") * sum_or_zero(comparison_df, "classes")
+    ref_capacity = sum_or_zero(filtered_df, "capacity_ref") * sum_or_zero(filtered_df, "class_ref")
+    ref_capacity_comp = sum_or_zero(comparison_df, "capacity_ref") * sum_or_zero(comparison_df, "class_ref")
+
+    cap_cols = st.columns(4)
+    cap_definitions = [
+        ("Total Capacity", total_capacity, comparison_capacity),
+        ("Comparison Capacity", comparison_capacity, total_capacity),
+        ("Mat Capacity", mat_capacity, mat_capacity_comp),
+        ("Reformer Capacity", ref_capacity, ref_capacity_comp),
+    ]
+    for col, (label, current_value, comparison_value) in zip(cap_cols, cap_definitions):
+        delta = None
+        if comparison_value not in (None, 0):
+            delta = (current_value - comparison_value) / comparison_value * 100 if comparison_value else None
+        col.metric(
+            label,
+            value=format_capacity_value(current_value),
+            delta=f"{delta:+.1f}%" if delta is not None else None,
+        )
