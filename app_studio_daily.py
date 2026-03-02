@@ -400,10 +400,9 @@ def load_data():
         return pd.Series(0, index=df.index, dtype=float)
 
     sales_components = [
-        safe_sales_series("cp_sales_mat"),
+        safe_sales_series("mt_sales_total"),
         safe_sales_series("cp_sales_ref"),
-        safe_sales_series("mt_sales_mat"),
-        safe_sales_series("mt_sales_ref"),
+        safe_sales_series("cp_sales_mat"),
     ]
     df["netsales"] = sum(sales_components)
     mt_visits_ref_series = df.get("mt_visits_ref")
