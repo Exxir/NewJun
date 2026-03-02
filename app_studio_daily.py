@@ -388,18 +388,27 @@ def load_data():
         safe_sales_series("mt_sales_ref"),
     ]
     df["netsales"] = sum(sales_components)
-    cp_visits_series = df.get("cp_visits")
-    if cp_visits_series is None:
-        cp_visits_series = pd.Series(0, index=df.index, dtype=float)
-    cp_visits_series = cp_visits_series.fillna(0)
-    total_visits_series = df.get("total_visits")
-    if total_visits_series is None:
-        total_visits_series = cp_visits_series.copy()
-    total_visits_series = total_visits_series.fillna(cp_visits_series)
-    df["cp_visits"] = cp_visits_series
-    df["total_visits"] = total_visits_series
+    mt_visits_ref_series = df.get("mt_visits_ref")
+    if mt_visits_ref_series is None:
+        mt_visits_ref_series = pd.Series(0, index=df.index, dtype=float)
+    mt_visits_ref_series = mt_visits_ref_series.fillna(0)
+    total_visits_mat_series = df.get("total_visits")
+    if total_visits_mat_series is None:
+        total_visits_mat_series = pd.Series(0, index=df.index, dtype=float)
+    total_visits_mat_series = total_visits_mat_series.fillna(0)
+    cp_visits_mat_series = df.get("cp_visits")
+    if cp_visits_mat_series is None:
+        cp_visits_mat_series = pd.Series(0, index=df.index, dtype=float)
+    cp_visits_mat_series = cp_visits_mat_series.fillna(0)
+    cp_visits_ref_series = df.get("cp_visits_ref")
+    if cp_visits_ref_series is None:
+        cp_visits_ref_series = pd.Series(0, index=df.index, dtype=float)
+    cp_visits_ref_series = cp_visits_ref_series.fillna(0)
+
+    df["cp_visits"] = cp_visits_mat_series
+    df["total_visits"] = mt_visits_ref_series + total_visits_mat_series + cp_visits_mat_series + cp_visits_ref_series
     mt_visits_series = df.get("mt_visits")
-    fallback_series = total_visits_series - cp_visits_series
+    fallback_series = df["total_visits"] - cp_visits_mat_series
     if mt_visits_series is None:
         mt_visits_series = fallback_series
     else:
