@@ -42,6 +42,14 @@ def clamp_date(value: date, lower: date, upper: date) -> date:
     return max(min(value, upper), lower)
 
 
+def first_full_month_start(minimum_date: date) -> date:
+    if minimum_date.day == 1:
+        return minimum_date
+    year = minimum_date.year + (1 if minimum_date.month == 12 else 0)
+    month = 1 if minimum_date.month == 12 else minimum_date.month + 1
+    return date(year, month, 1)
+
+
 def format_table(df: pd.DataFrame) -> pd.DataFrame:
     view = df.copy()
     if "date" in view.columns:
@@ -233,7 +241,8 @@ def compute_comparison_dates(
         comp_start = candidate_start
         comp_end = candidate_start + period_length
 
-    if len(history_index) == 0 or comp_start < min_date:
+    insufficient_history = (max_date - min_date) < timedelta(days=365)
+    if len(history_index) == 0 or comp_start < min_date or insufficient_history:
         comp_start = oldest_month_start
         comp_end = min(comp_start + period_length, max_date)
 
@@ -451,7 +460,9 @@ studio_df = studio_df.sort_values("date")  # type: ignore[arg-type]
 
 min_date = studio_df["date"].min().date()
 max_date = studio_df["date"].max().date()
-oldest_month_start = min_date.replace(day=1)
+oldest_month_start = first_full_month_start(min_date)
+if oldest_month_start > max_date:
+    oldest_month_start = min_date
 
 history_series = studio_df.groupby("date")["netsales"].sum().sort_index()
 history_index: pd.DatetimeIndex = pd.DatetimeIndex(history_series.index)
