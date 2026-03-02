@@ -767,7 +767,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_capacity, tab_forecast, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Capacity", "Forecast", "DataVisits", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_dollars_per_visit, tab_occ_percent, tab_capacity, tab_forecast, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "$/Visit", "Occ %", "Capacity", "Forecast", "DataVisits", "Data"])
 
 with tab_data:
     col1, col2 = st.columns([1, 1])
@@ -2300,4 +2300,66 @@ with tab_capacity:
             label,
             value=format_capacity_value(current_value),
             delta=f"{delta:+.1f}%" if delta is not None else None,
+        )
+with tab_dollars_per_visit:
+    def safe_divide(numer: float, denom: float) -> Optional[float]:
+        if denom == 0:
+            return None
+        return numer / denom
+
+    dollar_cols = st.columns([1, 1])
+    with dollar_cols[0]:
+        value = safe_divide(month_sales_to_date_display, month_visits_to_date)
+        comp_value = safe_divide(month_sales_to_date_comp, month_visits_to_date_comp)
+        label = f"$/Visit MTD: {month_start_ts:%b %d} – {actual_month_end:%b %d, %Y}"
+        comp_label = f"Prior Year: {month_td_comp_start:%b %d} – {month_td_comp_end:%b %d, %Y}"
+        st.markdown("<div class='fw-section-title'>$/Visit To Date</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card(
+                "",
+                value if value is not None else 0.0,
+                label,
+                comp_value if comp_value is not None else 0.0,
+                comp_label,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with dollar_cols[1]:
+        value = safe_divide(month_sales_estimate, full_month_visits_estimate_total)
+        comp_value = safe_divide(month_sales_estimate_comp, month_visits_estimate_comp)
+        label = f"$/Visit Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y}"
+        comp_label = f"Prior Year: {comparison_month_start:%b %d} – {comparison_month_end:%b %d, %Y}"
+        st.markdown("<div class='fw-section-title'>$/Visit Estimate</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card(
+                "",
+                value if value is not None else 0.0,
+                label,
+                comp_value if comp_value is not None else 0.0,
+                comp_label,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    mix_cols = st.columns(4)
+    mix_cards = [
+        ("Mat $/Visit", month_mat_visits_to_date, month_mat_visits_comp, month_sum(["mt_sales_mat", "cp_sales_mat"]) , comparison_sum(["mt_sales_mat", "cp_sales_mat"])),
+        ("Reformer $/Visit", month_reformer_visits_to_date, month_reformer_visits_comp, month_sum(["mt_sales_ref", "cp_sales_ref"]), comparison_sum(["mt_sales_ref", "cp_sales_ref"])),
+        ("Classpass $/Visit", month_classpass_to_date, month_classpass_comp, month_sum(["cp_sales_mat", "cp_sales_ref"]), comparison_sum(["cp_sales_mat", "cp_sales_ref"])),
+        ("Classpass Reformer $/Visit", month_reformer_visits_to_date, month_reformer_visits_comp, month_sum(["cp_sales_ref"]), comparison_sum(["cp_sales_ref"])),
+    ]
+    for col, (title, current_visits, comp_visits, current_sales, comp_sales) in zip(mix_cols, mix_cards):
+        value = safe_divide(current_sales, current_visits)
+        comp_value = safe_divide(comp_sales, comp_visits)
+        col.markdown(f"<div class='fw-section-title'>{title}</div>", unsafe_allow_html=True)
+        col.markdown(
+            render_sales_card(
+                "",
+                value if value is not None else 0.0,
+                f"{title}: {period_label}",
+                comp_value if comp_value is not None else 0.0,
+                comp_period_label,
+            ),
+            unsafe_allow_html=True,
         )
