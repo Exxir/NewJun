@@ -768,7 +768,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_capacity, tab_forecast, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Capacity", "Forecast", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_occ_percent, tab_capacity, tab_forecast, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "Occ %", "Capacity", "Forecast", "DataVisits", "Data"])
 
 with tab_data:
     col1, col2 = st.columns([1, 1])
@@ -843,6 +843,58 @@ with tab_forecast:
             "source_date": "Source Date",
             "source_sales": "Source Sales",
         }))
+
+
+with tab_data_visits:
+    if filtered_df.empty:
+        st.info("No visit data available for the selected range.")
+    else:
+        visits_view = filtered_df.copy()
+        def column_or_zero(name: str) -> pd.Series:
+            series = visits_view.get(name)
+            if series is None:
+                return pd.Series(0, index=visits_view.index, dtype=float)
+            return cast(pd.Series, series).fillna(0)
+
+        visits_view["mat_visits"] = column_or_zero("mat_visits_raw")
+        visits_view["ref_visits"] = column_or_zero("mt_visits_ref")
+        visits_view["total_visits_display"] = visits_view["mat_visits"] + visits_view["ref_visits"]
+        visits_view["mat_capacity_slots"] = column_or_zero("capacity_mat") * column_or_zero("classes")
+        visits_view["ref_capacity_slots"] = column_or_zero("capacity_ref") * column_or_zero("class_ref")
+        visits_view["total_capacity_slots"] = visits_view["mat_capacity_slots"] + visits_view["ref_capacity_slots"]
+        visits_view["mat_cp_visits"] = column_or_zero("cp_visits")
+        visits_view["ref_cp_visits"] = column_or_zero("cp_visits_ref")
+
+        summary = visits_view.groupby("date").agg(
+            {
+                "total_visits_display": "sum",
+                "total_capacity_slots": "sum",
+                "mat_visits": "sum",
+                "mat_capacity_slots": "sum",
+                "ref_visits": "sum",
+                "ref_capacity_slots": "sum",
+                "mat_cp_visits": "sum",
+                "ref_cp_visits": "sum",
+            }
+        ).reset_index()
+
+        summary.columns = [
+            "Date",
+            "Total Visits",
+            "Total Capacity Slots",
+            "Mat Visits",
+            "Mat Capacity Slots",
+            "Reformer Visits",
+            "Reformer Capacity Slots",
+            "Mat Classpass Visits",
+            "Reformer Classpass Visits",
+        ]
+        summary["Date"] = pd.to_datetime(summary["Date"]).dt.strftime("%b %d, %Y")
+
+        for column in summary.columns[1:]:
+            summary[column] = summary[column].map(lambda x: f"{x:,.0f}")
+
+        st.dataframe(summary)
 
 selected_occ = combined_occupancy_ratio(filtered_df)
 comparison_occ = combined_occupancy_ratio(comparison_df)
