@@ -809,7 +809,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_dollars_per_visit, tab_occ_percent, tab_capacity, tab_forecast, tab_yearly, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "$/Visit", "Occ %", "Capacity", "Forecast", "Yearly", "DataVisits", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_dollars_per_visit, tab_occ_percent, tab_capacity, tab_forecast, tab_yearly, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "$/Visit", "Occ %", "Capacity", "Forecast", "Yearly", "DataVisits", "AllData"])
 
 with tab_data:
     col1, col2 = st.columns([1, 1])
