@@ -2453,7 +2453,7 @@ with tab_dollars_per_visit:
         )
         st.altair_chart(dollars_chart, use_container_width=True)
 with tab_yearly:
-    yearly_end = cast(pd.Timestamp, pd.Timestamp(end_date))
+    yearly_end = cast(pd.Timestamp, pd.Timestamp(end_date).replace(day=1))
     yearly_start = cast(pd.Timestamp, (yearly_end - pd.DateOffset(months=11)).replace(day=1))
 
     yearly_cols = st.columns(2)
