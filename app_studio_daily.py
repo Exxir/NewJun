@@ -2303,9 +2303,12 @@ with tab_capacity:
         )
 with tab_dollars_per_visit:
     def safe_divide(numer: float, denom: float) -> Optional[float]:
-        if denom == 0:
+        if denom in (None, 0):
             return None
         return numer / denom
+
+    def format_dollar(value: Optional[float]) -> float:
+        return round(value or 0.0, 2)
 
     dollar_cols = st.columns([1, 1])
     with dollar_cols[0]:
@@ -2317,9 +2320,9 @@ with tab_dollars_per_visit:
         st.markdown(
             render_sales_card(
                 "",
-                value if value is not None else 0.0,
+                format_dollar(value),
                 label,
-                comp_value if comp_value is not None else 0.0,
+                format_dollar(comp_value),
                 comp_label,
             ),
             unsafe_allow_html=True,
@@ -2334,9 +2337,9 @@ with tab_dollars_per_visit:
         st.markdown(
             render_sales_card(
                 "",
-                value if value is not None else 0.0,
+                format_dollar(value),
                 label,
-                comp_value if comp_value is not None else 0.0,
+                format_dollar(comp_value),
                 comp_label,
             ),
             unsafe_allow_html=True,
@@ -2356,9 +2359,9 @@ with tab_dollars_per_visit:
         col.markdown(
             render_sales_card(
                 "",
-                value if value is not None else 0.0,
+                format_dollar(value),
                 f"{title}: {period_label}",
-                comp_value if comp_value is not None else 0.0,
+                format_dollar(comp_value),
                 comp_period_label,
             ),
             unsafe_allow_html=True,
