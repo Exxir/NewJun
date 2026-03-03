@@ -2498,14 +2498,21 @@ with tab_yearly:
         yearly_data_dates = pd.Series(pd.to_datetime(yearly_data["date"]), index=yearly_data.index)
         yearly_data["month"] = yearly_data_dates.dt.to_period("M").dt.to_timestamp()
         monthly_sales = yearly_data.groupby("month")["netsales"].sum().reset_index()
-        monthly_sales = monthly_sales.sort_values("month", ascending=False).head(12).sort_values("month")
+        monthly_sales = monthly_sales.sort_values("month", ascending=False).head(12)
+        monthly_sales = monthly_sales.reset_index(drop=True)
         monthly_sales["label"] = monthly_sales["month"].dt.strftime("%b %Y")
 
+        label_order = monthly_sales["label"].tolist()
         yearly_chart = (
             alt.Chart(monthly_sales)
             .mark_bar(width=24, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
             .encode(
-                x=alt.X("label:N", title="Month", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                x=alt.X(
+                    "label:N",
+                    title="Month",
+                    axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0),
+                    sort=label_order,
+                ),
                 y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1", format="$,.0f")),
                 tooltip=[
                     alt.Tooltip("label:N", title="Month"),
