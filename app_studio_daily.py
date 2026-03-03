@@ -236,10 +236,15 @@ def compute_comparison_dates(
     weekday_index_map: dict[int, pd.DatetimeIndex],
     history_index: pd.DatetimeIndex,
     oldest_month_start: date,
+    comparison_mode: str,
 ) -> Tuple[date, date]:
     period_length = current_end - current_start
 
-    if horizon in ("Daily", "Weekly"):
+    if comparison_mode == "Month over Month":
+        shift = timedelta(days=period_length.days + 1)
+        comp_start = current_start - shift
+        comp_end = current_end - shift
+    elif horizon in ("Daily", "Weekly"):
         shift = timedelta(weeks=52)
         candidate_start = current_start - shift
         candidate_end = current_end - shift
@@ -251,7 +256,7 @@ def compute_comparison_dates(
         comp_end = candidate_start + period_length
 
     insufficient_history = (max_date - min_date) < timedelta(days=365)
-    if len(history_index) == 0 or comp_start < min_date or insufficient_history:
+    if comparison_mode != "Month over Month" and (len(history_index) == 0 or comp_start < min_date or insufficient_history):
         comp_start = oldest_month_start
         comp_end = min(comp_start + period_length, max_date)
 
@@ -507,6 +512,19 @@ horizon = st.radio(
 )
 st.session_state["selected_horizon"] = horizon
 
+comparison_modes = ["Year over Year", "Month over Month"]
+comparison_default = st.session_state.get("comparison_mode", comparison_modes[0])
+if comparison_default not in comparison_modes:
+    comparison_default = comparison_modes[0]
+comparison_mode = st.radio(
+    "Comparison Mode",
+    comparison_modes,
+    index=comparison_modes.index(comparison_default),
+    horizontal=True,
+    label_visibility="collapsed",
+)
+st.session_state["comparison_mode"] = comparison_mode
+
 if horizon == "Custom":
     default_start = max_date - timedelta(days=6)
     if default_start < min_date:
@@ -532,6 +550,7 @@ comp_start_date, comp_end_date = compute_comparison_dates(
     weekday_index_map,
     history_index,
     oldest_month_start,
+    comparison_mode,
 )
 
 if horizon == "Custom":
