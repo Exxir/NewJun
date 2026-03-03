@@ -2366,3 +2366,47 @@ with tab_dollars_per_visit:
             ),
             unsafe_allow_html=True,
         )
+
+    st.markdown("<div class='fw-section-title'>$/Visit Breakdown</div>", unsafe_allow_html=True)
+    dollars_chart_current = build_chart_data(filtered_df, "Current", "Current").sort_values("date")
+    dollars_chart_comparison = build_chart_data(comparison_df, "Comparison", "Comparison").sort_values("date")
+    if dollars_chart_current.empty:
+        st.info("Not enough data to display the $/Visit chart.")
+    else:
+        visits_current = build_chart_data(filtered_df, "Current", "Current", column="total_visits").sort_values("date")
+        visits_comparison = build_chart_data(comparison_df, "Comparison", "Comparison", column="total_visits").sort_values("date")
+        dollars_chart_current["value"] = dollars_chart_current["netsales"] / visits_current["netsales"].replace(0, pd.NA)
+        dollars_chart_comparison["value"] = dollars_chart_comparison["netsales"] / visits_comparison["netsales"].replace(0, pd.NA)
+        dollars_chart_current = dollars_chart_current.dropna(subset=["value"])
+        dollars_chart_comparison = dollars_chart_comparison.dropna(subset=["value"])
+
+        dollars_chart_current["x_axis"] = dollars_chart_current["date"].dt.strftime("%b %d")
+        dollars_chart_current["display_label"] = dollars_chart_current["date"].dt.strftime("%b %d, %Y")
+        dollars_chart_comparison["x_axis"] = dollars_chart_comparison["date"].dt.strftime("%b %d")
+        dollars_chart_comparison["display_label"] = dollars_chart_comparison["date"].dt.strftime("%b %d, %Y")
+        chart_df = pd.concat([
+            dollars_chart_current.assign(series="Current"),
+            dollars_chart_comparison.assign(series="Comparison"),
+        ])
+        dollars_chart = (
+            alt.Chart(chart_df)
+            .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                xOffset="series:N",
+                y=alt.Y("value:Q", title="$/Visit", axis=alt.Axis(labelColor="#aeb3d1", format="$,.2f")),
+                color=alt.Color(
+                    "series:N",
+                    scale=alt.Scale(range=["#3f4a78", "#cda643"], domain=["Comparison", "Current"]),
+                    title="",
+                    legend=None,
+                ),
+                tooltip=[
+                    alt.Tooltip("series:N", title="Series"),
+                    alt.Tooltip("display_label:N", title="Date"),
+                    alt.Tooltip("value:Q", title="$/Visit", format="$,.2f"),
+                ],
+            )
+            .properties(height=260)
+        )
+        st.altair_chart(dollars_chart, use_container_width=True)
