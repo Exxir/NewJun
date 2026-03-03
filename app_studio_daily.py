@@ -2495,14 +2495,23 @@ with tab_yearly:
     if yearly_data.empty:
         st.info("Not enough data to display yearly sales.")
     else:
-        yearly_data_dates = pd.Series(pd.to_datetime(yearly_data["date"]), index=yearly_data.index)
-        yearly_data["month"] = yearly_data_dates.dt.to_period("M").dt.to_timestamp()
-        monthly_sales = yearly_data.groupby("month")["netsales"].sum().reset_index()
-        monthly_sales = monthly_sales.sort_values("month", ascending=False).head(12)
-        monthly_sales = monthly_sales.reset_index(drop=True)
+        monthly_values = []
+        for i in range(12):
+            month_start = (yearly_start + pd.DateOffset(months=i)).to_period("M").to_timestamp()
+            month_end = month_start + pd.offsets.MonthEnd(0)
+            month_mask = (yearly_dates >= month_start) & (yearly_dates <= month_end)
+            month_total = float(yearly_data.loc[month_mask, "netsales"].sum())
+            monthly_values.append((month_start, month_total))
+
+        monthly_sales = pd.DataFrame(
+            {
+                "month": [m for m, _ in monthly_values],
+                "netsales": [month_sales_estimate if m == yearly_end else v for m, v in monthly_values],
+            }
+        )
         monthly_sales["label"] = monthly_sales["month"].dt.strftime("%b %Y")
 
-        label_order = monthly_sales["label"].tolist()
+        label_order = monthly_sales.sort_values("month", ascending=False)["label"].tolist()
         yearly_chart = (
             alt.Chart(monthly_sales)
             .mark_bar(width=24, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
