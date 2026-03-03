@@ -809,7 +809,7 @@ st.markdown(
 )
 
 # --- Layout ---
-tab_snap, tab_sales_money, tab_trips, tab_dollars_per_visit, tab_occ_percent, tab_capacity, tab_forecast, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "$/Visit", "Occ %", "Capacity", "Forecast", "DataVisits", "Data"])
+tab_snap, tab_sales_money, tab_trips, tab_dollars_per_visit, tab_occ_percent, tab_capacity, tab_forecast, tab_yearly, tab_data_visits, tab_data = st.tabs(["Snap", "Sales", "Visits", "$/Visit", "Occ %", "Capacity", "Forecast", "Yearly", "DataVisits", "Data"])
 
 with tab_data:
     col1, col2 = st.columns([1, 1])
@@ -2452,3 +2452,5 @@ with tab_dollars_per_visit:
             .properties(height=260)
         )
         st.altair_chart(dollars_chart, use_container_width=True)
+with tab_yearly:
+    st.info("Yearly tab placeholder")
