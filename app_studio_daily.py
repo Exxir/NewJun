@@ -210,6 +210,9 @@ def align_date_to_weekday(target_date: date, weekday_index_map: dict[int, pd.Dat
 def compute_current_dates(horizon: str, min_date: date, max_date: date) -> Tuple[date, date]:
     if horizon == "Daily":
         start = end = max_date
+    elif horizon == "Yearly":
+        end = max_date
+        start = max(end - timedelta(days=365), min_date)
     elif horizon == "Weekly":
         end = max_date
         start = max_date - timedelta(days=6)
@@ -493,7 +496,7 @@ if len(history_visits_index) > 0:
             weekday_index_map_visits[weekday] = visits_weekday_series.index[mask]
 
 
-horizon_options = ["Monthly", "Weekly", "Daily", "Custom"]
+horizon_options = ["Monthly", "Weekly", "Daily", "Yearly", "Custom"]
 horizon_default = st.session_state.get("selected_horizon", "Monthly")
 if horizon_default not in horizon_options:
     horizon_default = "Monthly"
@@ -1929,7 +1932,12 @@ with tab_sales_money:
     if chart_data_current.empty:
         st.info("Not enough data to display the snapshot chart.")
     else:
-        chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
+        if horizon == "Yearly":
+            chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %Y")
+            chart_data_comparison["x_axis"] = chart_data_comparison["date"].dt.strftime("%b %Y")
+        else:
+            chart_data_current["x_axis"] = chart_data_current["date"].dt.strftime("%b %d")
+            chart_data_comparison["x_axis"] = chart_data_comparison["date"].dt.strftime("%b %d")
         chart_data_current["display_label"] = chart_data_current["date"].dt.strftime("%b %d, %Y")
         chart_data_current["comparison_label"] = chart_data_current["display_label"]
 
@@ -1956,11 +1964,12 @@ with tab_sales_money:
         )
         st.markdown(header_html, unsafe_allow_html=True)
 
+        x_axis_title = "Month" if horizon == "Yearly" else ""
         bar_chart = (
             alt.Chart(chart_df)
             .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
             .encode(
-                x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                x=alt.X("x_axis:N", title=x_axis_title, axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
                 xOffset="series:N",
                 y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1")),
                 color=alt.Color(
@@ -2380,19 +2389,24 @@ with tab_dollars_per_visit:
         dollars_chart_current = dollars_chart_current.dropna(subset=["value"])
         dollars_chart_comparison = dollars_chart_comparison.dropna(subset=["value"])
 
-        dollars_chart_current["x_axis"] = dollars_chart_current["date"].dt.strftime("%b %d")
+        if horizon == "Yearly":
+            dollars_chart_current["x_axis"] = dollars_chart_current["date"].dt.strftime("%b %Y")
+            dollars_chart_comparison["x_axis"] = dollars_chart_comparison["date"].dt.strftime("%b %Y")
+        else:
+            dollars_chart_current["x_axis"] = dollars_chart_current["date"].dt.strftime("%b %d")
+            dollars_chart_comparison["x_axis"] = dollars_chart_comparison["date"].dt.strftime("%b %d")
         dollars_chart_current["display_label"] = dollars_chart_current["date"].dt.strftime("%b %d, %Y")
-        dollars_chart_comparison["x_axis"] = dollars_chart_comparison["date"].dt.strftime("%b %d")
         dollars_chart_comparison["display_label"] = dollars_chart_comparison["date"].dt.strftime("%b %d, %Y")
         chart_df = pd.concat([
             dollars_chart_current.assign(series="Current"),
             dollars_chart_comparison.assign(series="Comparison"),
         ])
+        x_axis_title = "Month" if horizon == "Yearly" else ""
         dollars_chart = (
             alt.Chart(chart_df)
             .mark_bar(width=18, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
             .encode(
-                x=alt.X("x_axis:N", title="", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                x=alt.X("x_axis:N", title=x_axis_title, axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
                 xOffset="series:N",
                 y=alt.Y("value:Q", title="$/Visit", axis=alt.Axis(labelColor="#aeb3d1", format="$,.2f")),
                 color=alt.Color(
