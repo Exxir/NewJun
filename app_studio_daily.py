@@ -312,7 +312,7 @@ div[data-baseweb="radio"] {
 }
 div[data-baseweb="radio"] > div {
     display: flex;
-    gap: 0.3rem;
+    gap: 0.15rem;
     flex-wrap: wrap;
 }
 div[data-baseweb="radio"] label {
@@ -329,6 +329,11 @@ div[data-baseweb="radio"] input:checked + label {
 }
 div[data-baseweb="radio"] input:focus + label {
     box-shadow: 0 0 0 2px rgba(245, 199, 70, 0.4);
+}
+@media (max-width: 768px) {
+    div[data-baseweb="radio"] > div {
+        row-gap: 0.15rem;
+    }
 }
 </style>
 """
