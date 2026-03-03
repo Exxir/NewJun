@@ -2392,7 +2392,7 @@ with tab_dollars_per_visit:
         ("Mat $/Visit", month_mat_visits_to_date, month_mat_visits_comp, month_sum(["mt_sales_mat", "cp_sales_mat"]) , comparison_sum(["mt_sales_mat", "cp_sales_mat"])),
         ("Reformer $/Visit", month_reformer_visits_to_date, month_reformer_visits_comp, month_sum(["mt_sales_ref", "cp_sales_ref"]), comparison_sum(["mt_sales_ref", "cp_sales_ref"])),
         ("Classpass $/Visit", month_classpass_to_date, month_classpass_comp, month_sum(["cp_sales_mat", "cp_sales_ref"]), comparison_sum(["cp_sales_mat", "cp_sales_ref"])),
-        ("Classpass Reformer $/Visit", month_reformer_visits_to_date, month_reformer_visits_comp, month_sum(["cp_sales_ref"]), comparison_sum(["cp_sales_ref"])),
+        ("CP Reformer $/Visit", month_reformer_visits_to_date, month_reformer_visits_comp, month_sum(["cp_sales_ref"]), comparison_sum(["cp_sales_ref"])),
     ]
     for col, (title, current_visits, comp_visits, current_sales, comp_sales) in zip(mix_cols, mix_cards):
         value = safe_divide(current_sales, current_visits)
