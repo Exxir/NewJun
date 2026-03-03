@@ -2453,4 +2453,92 @@ with tab_dollars_per_visit:
         )
         st.altair_chart(dollars_chart, use_container_width=True)
 with tab_yearly:
-    st.info("Yearly tab placeholder")
+    yearly_end = cast(pd.Timestamp, pd.Timestamp(end_date))
+    yearly_start = cast(pd.Timestamp, (yearly_end - pd.DateOffset(months=11)).replace(day=1))
+
+    yearly_cols = st.columns(2)
+    with yearly_cols[0]:
+        st.markdown("<div class='fw-section-title'>Monthly Sales To Date</div>", unsafe_allow_html=True)
+        st.markdown(
+            render_sales_card(
+                "",
+                month_sales_to_date_display,
+                month_label_td,
+                month_sales_to_date_comp,
+                month_label_td_comp,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with yearly_cols[1]:
+        st.markdown("<div class='fw-section-title'>Monthly Sales Estimate</div>", unsafe_allow_html=True)
+        est_delta_label = (
+            f"{month_sales_estimate_delta_pct:+.1f}%"
+            if month_sales_estimate_delta_pct is not None
+            else "—"
+        )
+        st.markdown(
+            render_sales_card(
+                "",
+                month_sales_estimate,
+                f"Sales Est: {month_start_ts:%b %d} – {full_month_end_ts:%b %d, %Y} <span style='color:#19c37d;font-weight:600;margin-left:0.35rem;'>{est_delta_label}</span>",
+                month_sales_estimate_comp,
+                f"Prior Year: {month_label_est_comp}",
+            ),
+            unsafe_allow_html=True,
+        )
+
+    yearly_data = filtered_df.copy()
+    yearly_dates = pd.to_datetime(yearly_data["date"])
+    yearly_data = yearly_data[(yearly_dates >= yearly_start) & (yearly_dates <= yearly_end)]
+
+    if yearly_data.empty:
+        st.info("Not enough data to display yearly sales.")
+    else:
+        yearly_data_dates = pd.Series(pd.to_datetime(yearly_data["date"]), index=yearly_data.index)
+        yearly_data["month"] = yearly_data_dates.dt.to_period("M").dt.to_timestamp()
+        monthly_sales = yearly_data.groupby("month")["netsales"].sum().reset_index()
+        monthly_sales = monthly_sales.sort_values("month", ascending=False).head(12).sort_values("month")
+        monthly_sales["label"] = monthly_sales["month"].dt.strftime("%b %Y")
+
+        yearly_chart = (
+            alt.Chart(monthly_sales)
+            .mark_bar(width=24, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("label:N", title="Month", axis=alt.Axis(labelColor="#aeb3d1", labelPadding=8, labelAngle=0)),
+                y=alt.Y("netsales:Q", title="Net Sales", axis=alt.Axis(labelColor="#aeb3d1", format="$,.0f")),
+                tooltip=[
+                    alt.Tooltip("label:N", title="Month"),
+                    alt.Tooltip("netsales:Q", title="Net Sales", format="$,.0f"),
+                ],
+            )
+            .properties(height=280)
+        )
+        st.markdown("<div class='fw-section-title'>Trailing 12-Month Sales</div>", unsafe_allow_html=True)
+        st.altair_chart(yearly_chart, use_container_width=True)
+
+        comparison_data = comparison_df.copy()
+        comparison_dates = pd.Series(pd.to_datetime(comparison_data["date"]), index=comparison_data.index)
+        comparison_data = comparison_data[(comparison_dates >= yearly_start) & (comparison_dates <= yearly_end)]
+        comparison_data["month"] = comparison_dates.dt.to_period("M").dt.to_timestamp()
+        comparison_totals = comparison_data.groupby("month")["netsales"].sum().reset_index()
+        comparison_map = {row["month"]: float(row["netsales"]) for _, row in comparison_totals.iterrows()}
+
+        descending_months = monthly_sales.sort_values("month", ascending=False)
+        rows_html = []
+        for _, row in descending_months.iterrows():
+            month_start = cast(pd.Timestamp, row["month"])
+            month_value = float(row["netsales"])
+            comp_value = comparison_map.get(month_start)
+            comp_label = f"Prior: {month_start - pd.DateOffset(months=12):%b %Y}" if comp_value is not None else "—"
+            rows_html.append(
+                render_sales_entry_card(
+                    month_start.strftime("%b %Y"),
+                    month_value,
+                    comp_label,
+                    comp_value,
+                )
+            )
+
+        st.markdown("<div class='fw-section-title'>Monthly Sales (Descending)</div>", unsafe_allow_html=True)
+        st.markdown("".join(rows_html), unsafe_allow_html=True)
