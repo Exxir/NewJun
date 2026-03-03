@@ -315,6 +315,21 @@ div[data-baseweb="radio"] > div {
     gap: 0.3rem;
     flex-wrap: wrap;
 }
+div[data-baseweb="radio"] label {
+    background-color: #1b2136;
+    border: 1px solid #f5c746;
+    color: #f5c746;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-weight: 600;
+}
+div[data-baseweb="radio"] input:checked + label {
+    background-color: #f5c746;
+    color: #0b1124;
+}
+div[data-baseweb="radio"] input:focus + label {
+    box-shadow: 0 0 0 2px rgba(245, 199, 70, 0.4);
+}
 </style>
 """
 st.markdown(STUDIO_PICKER_CSS, unsafe_allow_html=True)
