@@ -240,7 +240,7 @@ def compute_comparison_dates(
 ) -> Tuple[date, date]:
     period_length = current_end - current_start
 
-    if comparison_mode == "Month over Month":
+    if comparison_mode == "MoM":
         shift = timedelta(days=period_length.days + 1)
         comp_start = current_start - shift
         comp_end = current_end - shift
@@ -256,7 +256,7 @@ def compute_comparison_dates(
         comp_end = candidate_start + period_length
 
     insufficient_history = (max_date - min_date) < timedelta(days=365)
-    if comparison_mode != "Month over Month" and (len(history_index) == 0 or comp_start < min_date or insufficient_history):
+    if comparison_mode != "MoM" and (len(history_index) == 0 or comp_start < min_date or insufficient_history):
         comp_start = oldest_month_start
         comp_end = min(comp_start + period_length, max_date)
 
@@ -512,7 +512,7 @@ horizon = st.radio(
 )
 st.session_state["selected_horizon"] = horizon
 
-comparison_modes = ["Year over Year", "Month over Month"]
+comparison_modes = ["YoY", "MoM"]
 comparison_default = st.session_state.get("comparison_mode", comparison_modes[0])
 if comparison_default not in comparison_modes:
     comparison_default = comparison_modes[0]
