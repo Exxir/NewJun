@@ -503,27 +503,30 @@ horizon_default = st.session_state.get("selected_horizon", "Monthly")
 if horizon_default not in horizon_options:
     horizon_default = "Monthly"
 default_index = horizon_options.index(horizon_default)
-horizon = st.radio(
-    "Select horizon",
-    horizon_options,
-    index=default_index,
-    horizontal=True,
-    label_visibility="collapsed",
-)
-st.session_state["selected_horizon"] = horizon
+horizon_col, comparison_col = st.columns([2, 1])
+with horizon_col:
+    horizon = st.radio(
+        "Select horizon",
+        horizon_options,
+        index=default_index,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    st.session_state["selected_horizon"] = horizon
 
-comparison_modes = ["YoY", "MoM"]
-comparison_default = st.session_state.get("comparison_mode", comparison_modes[0])
-if comparison_default not in comparison_modes:
-    comparison_default = comparison_modes[0]
-comparison_mode = st.radio(
-    "Comparison Mode",
-    comparison_modes,
-    index=comparison_modes.index(comparison_default),
-    horizontal=True,
-    label_visibility="collapsed",
-)
-st.session_state["comparison_mode"] = comparison_mode
+with comparison_col:
+    comparison_modes = ["YoY", "MoM"]
+    comparison_default = st.session_state.get("comparison_mode", comparison_modes[0])
+    if comparison_default not in comparison_modes:
+        comparison_default = comparison_modes[0]
+    comparison_mode = st.radio(
+        "Comparison Mode",
+        comparison_modes,
+        index=comparison_modes.index(comparison_default),
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    st.session_state["comparison_mode"] = comparison_mode
 
 if horizon == "Custom":
     default_start = max_date - timedelta(days=6)
