@@ -448,9 +448,8 @@ def load_data():
         cp_visits_ref_series = pd.Series(0, index=df.index, dtype=float)
     cp_visits_ref_series = cp_visits_ref_series.fillna(0)
 
-    df["cp_visits"] = cp_visits_mat_series
-    reformer_visits_series = mt_visits_ref_series + cp_visits_ref_series
-    df["total_visits"] = total_visits_mat_series + cp_visits_mat_series + reformer_visits_series
+    df["cp_visits"] = cp_visits_mat_series + cp_visits_ref_series
+    df["total_visits"] = total_visits_mat_series + mt_visits_ref_series
     mt_visits_series = df.get("mt_visits")
     fallback_series = total_visits_mat_series
     if mt_visits_series is None:
