@@ -1144,8 +1144,6 @@ with tab_occ_percent:
         )
         st.altair_chart(occ_chart, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
-        render_toggle_links(active_metric_key)
-
     render_toggle_links(active_metric_key)
 
     components.html(
@@ -1154,7 +1152,6 @@ with tab_occ_percent:
         const doc = window.parent.document;
         const cards = doc.querySelectorAll('.occ-card[data-occ-target]');
         const radioRoot = doc.querySelector('[data-testid="stRadio"][aria-label="Occ Metric"]');
-        const links = doc.querySelectorAll('.occ-toggle-link[data-occ-target]');
         const triggerSelection = (target) => {
             if(!radioRoot) return;
             const inputs = radioRoot.querySelectorAll('input[type="radio"]');
@@ -1164,17 +1161,15 @@ with tab_occ_percent:
                 }
             });
         };
-        const bindElement = (el) => {
-            if(el.dataset.bound === 'true') return;
-            el.dataset.bound = 'true';
-            el.addEventListener('click', () => {
-                const target = el.dataset.occTarget;
+        cards.forEach(card => {
+            if(card.dataset.bound === 'true') return;
+            card.dataset.bound = 'true';
+            card.addEventListener('click', () => {
+                const target = card.dataset.occTarget;
                 if(!target) return;
                 triggerSelection(target);
             });
-        };
-        cards.forEach(bindElement);
-        links.forEach(bindElement);
+        });
         </script>
         """,
         height=0,
