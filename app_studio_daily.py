@@ -785,9 +785,19 @@ month_visits_estimate_delta_pct = None
 if month_visits_estimate_comp not in (None, 0):
     month_visits_estimate_delta_pct = ((full_month_visits_estimate_total - month_visits_estimate_comp) / month_visits_estimate_comp) * 100
 month_visits_to_date_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="total_visits")
-month_standard_to_date = sum_or_zero(month_to_date_df, "mt_visits")
+month_standard_to_date = (
+    sum_or_zero(month_to_date_df, "mt_visits") + sum_or_zero(month_to_date_df, "mt_visits_ref")
+    - (sum_or_zero(month_to_date_df, "cp_visits") + sum_or_zero(month_to_date_df, "cp_visits_ref"))
+)
 month_classpass_to_date = sum_or_zero(month_to_date_df, "cp_visits")
-month_standard_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits")
+month_standard_comp = (
+    sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits")
+    + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mt_visits_ref")
+    - (
+        sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
+        + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits_ref")
+    )
+)
 month_classpass_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
 month_mat_visits_to_date = sum_or_zero(month_to_date_df, "mat_visits_raw") + sum_or_zero(month_to_date_df, "cp_visits")
 month_mat_visits_comp = sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="mat_visits_raw") + sum_sales_between(comparison_df, month_td_comp_start, month_td_comp_end, column="cp_visits")
