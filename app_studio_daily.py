@@ -2053,7 +2053,10 @@ with tab_sales_money:
             comp_label = "—"
             comp_value: Optional[float] = None
             if len(comparison_daily_index) > 0:
-                candidate = cast(date, (day - pd.Timedelta(weeks=52)).date())
+                if comparison_mode == "MoM":
+                    candidate = cast(date, (day - pd.Timedelta(days=30)).date())
+                else:
+                    candidate = cast(date, (day - pd.Timedelta(weeks=52)).date())
                 aligned_date = align_date_to_weekday(candidate, comparison_daily_map, comparison_daily_index)
                 comp_ts = pd.Timestamp(aligned_date)
                 if not bool(pd.isna(comp_ts)):
