@@ -1016,18 +1016,26 @@ with tab_occ_percent:
             return "—"
         return f"{value * 100:.1f}%"
 
-    def occ_card_delta(current: Optional[float], comparison: Optional[float]) -> str:
+    def occ_card_delta(metric_key: str, current: Optional[float], comparison: Optional[float]) -> str:
         if current in (None, 0) or comparison in (None, 0):
             return "—"
         delta_pct = ((current - comparison) / comparison) * 100
-        color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
+        if metric_key == "classpass":
+            if delta_pct > 0:
+                color = "#ff4b4b"
+            elif delta_pct < 0:
+                color = "#19c37d"
+            else:
+                color = "#c0c4d8"
+        else:
+            color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
         return f"<span style='color:{color};font-weight:600;'>{delta_pct:+.1f}%</span>"
 
     def render_occ_card(metric_key: str, value: Optional[float], current_text: str, comparison_value: Optional[float], comparison_text: str) -> str:
         tooltip = "Comparison: —"
         if comparison_value not in (None, 0):
             tooltip = f"{comparison_text}: {format_occ_percent(comparison_value)}"
-        delta_html = occ_card_delta(value, comparison_value)
+        delta_html = occ_card_delta(metric_key, value, comparison_value)
         display_value = format_occ_percent(value)
         return (
             f"<div class='sales-dollar-card occ-card' data-tooltip='{tooltip}' data-occ-target='{metric_key}'>"
