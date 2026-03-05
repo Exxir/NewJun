@@ -1016,18 +1016,21 @@ with tab_occ_percent:
             return "—"
         return f"{value * 100:.1f}%"
 
-    def occ_card_delta(current: Optional[float], comparison: Optional[float]) -> str:
+    def occ_card_delta(metric_key: str, current: Optional[float], comparison: Optional[float]) -> str:
         if current in (None, 0) or comparison in (None, 0):
             return "—"
         delta_pct = ((current - comparison) / comparison) * 100
-        color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
+        if metric_key == "classpass":
+            color = "#19c37d" if delta_pct <= 0 else "#ff4b4b"
+        else:
+            color = "#19c37d" if delta_pct >= 0 else "#ff4b4b"
         return f"<span style='color:{color};font-weight:600;'>{delta_pct:+.1f}%</span>"
 
     def render_occ_card(metric_key: str, value: Optional[float], current_text: str, comparison_value: Optional[float], comparison_text: str) -> str:
         tooltip = "Comparison: —"
         if comparison_value not in (None, 0):
             tooltip = f"{comparison_text}: {format_occ_percent(comparison_value)}"
-        delta_html = occ_card_delta(value, comparison_value)
+        delta_html = occ_card_delta(metric_key, value, comparison_value)
         display_value = format_occ_percent(value)
         return (
             f"<div class='sales-dollar-card occ-card' data-tooltip='{tooltip}' data-occ-target='{metric_key}'>"
@@ -1121,8 +1124,8 @@ with tab_occ_percent:
 
         metric_value_current = active_metric["compute"](filtered_df)
         metric_value_comparison = active_metric["compute"](comparison_df)
-        current_delta_html = occ_card_delta(metric_value_current, metric_value_comparison)
-        comparison_delta_html = occ_card_delta(metric_value_comparison, metric_value_current)
+        current_delta_html = occ_card_delta(active_metric_key, metric_value_current, metric_value_comparison)
+        comparison_delta_html = occ_card_delta(active_metric_key, metric_value_comparison, metric_value_current)
         header_html = (
             "<div class='sales-bar-container legend-dual'>"
             "<div class='legend-row'>"
@@ -1211,7 +1214,7 @@ with tab_occ_percent:
         tooltip = "Comparison: —"
         if comparison_value not in (None, 0):
             tooltip = f"{comparison_label}: {format_occ_percent(comparison_value)}"
-        delta_html = occ_card_delta(value, comparison_value)
+        delta_html = occ_card_delta("occupancy", value, comparison_value)
         display_value = format_occ_percent(value)
         return (
             f"<div class='sales-entry-card' data-tooltip='{tooltip}'>"
