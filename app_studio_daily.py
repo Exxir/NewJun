@@ -241,9 +241,11 @@ def compute_comparison_dates(
     period_length = current_end - current_start
 
     if comparison_mode == "MoM":
-        shift = timedelta(days=period_length.days + 1)
-        comp_start = current_start - shift
-        comp_end = current_end - shift
+        shift = timedelta(days=30)
+        candidate_start = current_start - shift
+        candidate_end = current_end - shift
+        comp_start = align_date_to_weekday(candidate_start, weekday_index_map, history_index)
+        comp_end = align_date_to_weekday(candidate_end, weekday_index_map, history_index)
     elif horizon in ("Daily", "Weekly"):
         shift = timedelta(weeks=52)
         candidate_start = current_start - shift
